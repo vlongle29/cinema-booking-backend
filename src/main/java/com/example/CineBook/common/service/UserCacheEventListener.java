@@ -2,6 +2,7 @@ package com.example.CineBook.common.service;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -14,10 +15,11 @@ import java.util.UUID;
 @Component
 public class UserCacheEventListener {
 
-    private final UserCacheEventListener self;  // inject proxy của chính bean
+    private final ApplicationContext applicationContext;
 
-    public UserCacheEventListener(UserCacheEventListener self) {
-        this.self = self;
+    // inject proxy của chính bean
+    public UserCacheEventListener(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
     }
 
     /**
@@ -27,11 +29,11 @@ public class UserCacheEventListener {
     @EventListener
     public void handle(UserCacheEvictEvent event) {
         List<UUID> userIds = event.getUserIds();
-
         if (userIds == null || userIds.isEmpty()) return;
 
+        UserCacheEventListener self = applicationContext.getBean(UserCacheEventListener.class);
         for (UUID userId : userIds) {
-            self.evictAllUserCaches(userId);  // gọi qua proxy → chắc chắn xóa cache
+           self.evictAllUserCaches(userId);  // gọi qua proxy → chắc chắn xóa cache
         }
     }
 

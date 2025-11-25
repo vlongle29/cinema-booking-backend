@@ -98,30 +98,30 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, status);
     }
 
-    /**
-     * Check if field error valid
-     *
-     * @param ex
-     * @return
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidateException(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-
-        ValidationErrorResponse errorResponse = new ValidationErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation failed",
-                "BAD_REQUEST",
-                errors
-        );
-
-        return ResponseEntity.badRequest().body(errorResponse);
-    }
+//    /**
+//     * Check if field error valid
+//     *
+//     * @param ex
+//     * @return
+//     */
+//    @ExceptionHandler(MethodArgumentNotValidException.class)
+//    public ResponseEntity<ValidationErrorResponse> handleValidateException(MethodArgumentNotValidException ex) {
+//        Map<String, String> errors = new HashMap<>();
+//        ex.getBindingResult().getFieldErrors().forEach(error -> {
+//            String fieldName = ((FieldError) error).getField();
+//            String errorMessage = error.getDefaultMessage();
+//            errors.put(fieldName, errorMessage);
+//        });
+//
+//        ValidationErrorResponse errorResponse = new ValidationErrorResponse(
+//                HttpStatus.BAD_REQUEST.value(),
+//                "Validation failed",
+//                "BAD_REQUEST",
+//                errors
+//        );
+//
+//        return ResponseEntity.badRequest().body(errorResponse);
+//    }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {

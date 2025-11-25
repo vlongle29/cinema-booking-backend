@@ -54,10 +54,4 @@ public class UserAffectedService {
         return getUserIdsByRoleIds(roleIds);
     }
 
-    /**
-     * Lấy tất cả userId bị ảnh hưởng bởi menu (giả sử menu gán cho role)
-     */
-    public List<UUID> getUserIdsByMenu(UUID menuId) {
-        return sysUserRoleRepository.findUserIdsByMenuId(menuId);
-    }
 }

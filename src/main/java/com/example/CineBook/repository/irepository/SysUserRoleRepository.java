@@ -18,7 +18,7 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, UUID> 
 
     void deleteByUserIdAndRoleIdIn(UUID userId, List<UUID> roleIds);
 
-    @Query("SELECT ur.name FROM SysUserRole WHERE ur.userId = :userId")
+    @Query("SELECT ur.roleId FROM SysUserRole ur WHERE ur.userId = :userId")
     List<UUID> findSysRoleByUserId(@Param("userId") UUID userId);
 
     @Modifying(clearAutomatically = true)
@@ -30,7 +30,4 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, UUID> 
 
     @Query("select u.userId from SysUserRole u where u.roleId in :roleIds")
     List<UUID> findUserIdsByRoleIds(@Param("roleIds") List<UUID> roleIds);
-
-    @Query("select u.userId from SysUserRole u join SysRoleMenu rm on u.roleId = rm.roleId where rm.menuId = :menuId")
-    List<UUID> findUserIdsByMenuId(@Param("menuId") UUID menuId);
 }
