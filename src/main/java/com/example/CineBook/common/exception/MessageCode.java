@@ -1,0 +1,132 @@
+package com.example.CineBook.common.exception;
+
+import lombok.Getter;
+
+@Getter
+public enum MessageCode {
+    // Category
+    CATEGORY_NOT_FOUND,
+    CATEGORY_NAME_REQUIRED,
+    DUPLICATE_MENU_NAME,
+
+    // Role
+    SYS_ROLE_NOT_FOUND,
+    SYS_ROLE_CODE_ALREADY_EXISTS,
+    SYS_ROLE_CANNOT_DELETE_SYSTEM_ROLE,
+    SYS_ROLE_CANNOT_MODIFY_SYSTEM_ROLE_PERMISSIONS,
+    ROLE_NAME_REQUIRED,
+    ROLE_CODE_REQUIRED,
+    ASSIGN_ROLE_USER_ID_REQUIRED,
+    ASSIGN_ROLE_ROLE_IDS_REQUIRED,
+
+    // Auth & User
+    DELETE_FAIL, //new
+    PHONE_ALREADY_EXISTS, //new
+    LOGIN_FAIL,
+    ACCOUNT_LOCKED,
+    ACCOUNT_NOT_EXISTS,
+    USER_NOT_FOUND,
+    EMAIL_ALREADY_EXISTS,
+    USERNAME_ALREADY_EXISTS,
+    PASSWORD_CHANGE_FAILED,
+    PASSWORD_RESET_FAILED,
+    CHANGE_PASSWORD_USER_ID_REQUIRED,
+    CHANGE_PASSWORD_OLD_REQUIRED,
+    CHANGE_PASSWORD_OLD_SIZE,
+    CHANGE_PASSWORD_NEW_REQUIRED,
+    CHANGE_PASSWORD_NEW_SIZE,
+    CHANGE_PASSWORD_NEW_PATTERN,
+    USERNAME_REQUIRED,
+    PASSWORD_REQUIRED,
+    PASSWORD_WRONG,
+    USER_USERNAME_REQUIRED,
+    USER_PASSWORD_REQUIRED,
+    USER_NAME_REQUIRED,
+    USER_EMAIL_REQUIRED,
+    USER_PHONE_REQUIRED,
+    USER_WITH_NO_ROLE,
+    SESSION_EXPIRED,
+    SESSION_NOT_FOUND,
+    INVALID_TOKEN,
+
+    // General Errors
+    INTERNAL_SERVER_ERROR,
+    BAD_REQUEST,
+    UNAUTHORIZED,
+    FORBIDDEN,
+    VALIDATION_FAILED,
+
+    // =================================================================
+    // NOTE: Các mã dưới đây biểu thị trạng thái THÀNH CÔNG,
+    // nên cân nhắc chuyển ra một Enum khác để tránh nhầm lẫn với mã LỖI.
+    // =================================================================
+    SUCCESS,
+    ENTITY_NOT_FOUND,
+    // Permission
+    SYS_PERMISSION_NOT_FOUND,
+    SYS_PERMISSION_ALREADY_EXISTS,
+    SYS_PERMISSION_CANNOT_DELETE_SYSTEM_PERMISSION,
+    SYS_PERMISSION_CANNOT_MODIFY_SYSTEM_PERMISSION,
+    PERMISSION_NAME_REQUIRED,
+    PERMISSION_NAME_MAX_SIZE,
+    PERMISSION_DESCRIPTION_MAX_SIZE,
+
+    // Permission related errors
+    PERMISSION_UPDATE_OWN_ONLY,
+    PERMISSION_DELETE_OWN_ONLY,
+    PERMISSION_CANCEL_OWN_ONLY,
+    PERMISSION_APPROVE_DENIED,
+    PERMISSION_REJECT_DENIED,
+    PERMISSION_VIEW_PENDING_DENIED,
+
+    // Conflict related errors
+    CONFLICTING_REQUESTS,
+
+    // Not found errors
+    USER_REQUEST_NOT_FOUND,
+    REQUEST_PROCESS_NOT_FOUND,
+
+    // Action related errors
+    INVALID_STATE_NAME_IN_TRANSITION,
+    INITIAL_STATE_NOT_FOUND,
+    MULTIPLE_INITIAL_STATES_NOT_ALLOWED,
+    DUPLICATE_STATE_NAME_IN_REQUEST,
+    ACTION_NOT_ALLOWED,
+    NOTE_REQUIRED,
+    PERMISSION_DENIED,
+    WORKFLOW_INITIAL_STATE_NOT_FOUND,
+    WORKFLOW_INITIAL_STATE_MISMATCH,
+    WORKFLOW_NOT_ACTIVE,
+    PERMISSION_CANCEL_DENIED,
+    INVALID_WORKFLOW_ACTION,
+    STATUS_ONLY_PERFORM_ACTION_PENDING,
+    PERMISSION_ACTION_DENIED,
+    INVALID_METADATA_FORMAT,
+    INVALID_WORKFLOW_ROLE,
+    WORK_SCHEDULE_DETAIL_NOT_FOUND,
+    WORK_SCHEDULE_IS_HOLIDAY,
+    WORK_SCHEDULE_NOT_FOUND, REQUEST_CATEGORY_NOT_FOUND,
+    REQUEST_CATEGORY_CODE_ALREADY_EXISTS,
+    REQUEST_CATEGORY_NAME_ALREADY_EXISTS,
+    BULK_ACTION_DIFFERENT_TYPES,
+    BULK_ACTION_INVALID_IDS;
+
+    private final String message;
+
+    /**
+     * Constructor cho các mã lỗi có thông điệp tường minh.
+     *
+     * @param message Thông điệp lỗi dành cho người dùng.
+     */
+    MessageCode(String message) {
+        this.message = message;
+    }
+
+    /**
+     * Constructor cho các mã trạng thái (thường là thành công),
+     * không có thông điệp lỗi cụ thể.
+     */
+    MessageCode() {
+        this.message = null;
+    }
+}

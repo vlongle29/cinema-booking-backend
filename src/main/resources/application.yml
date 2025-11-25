@@ -1,0 +1,73 @@
+spring:
+  application:
+    name: cine-book
+
+  # Database Configuration
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # Cache & Redis Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: "cine-book"
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 10000
+
+  # Email Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# ==========================================================
+# CÁC CẤU HÌNH DƯỚI ĐÂY PHẢI NẰM NGOÀI CÙNG (KHÔNG THỤT VÀO TRONG 'spring')
+# ==========================================================
+
+# Server Configuration
+server:
+  port: 8080
+
+# Swagger
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# JWT Configuration (Đây là phần sửa lỗi chính)
+jwt:
+  secret: ${JWT_SECRET}
+  # Lưu ý: Kiểm tra lại tên biến trong class Java, bạn đang dùng 'expirationMs' hay 'expiration'?
+  # Nếu lỗi, hãy đổi 'expirationMs' thành 'expiration' cho khớp với file properties cũ.
+  expirationMs: ${JWT_EXPIRATION_MS:86400000}
+  refresh-expiration: ${JWT_REFRESH-EXPIRATION:604800000}
+
