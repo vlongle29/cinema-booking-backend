@@ -19,36 +19,55 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-  # Redis Configuration
+  # Cache & Redis Configuration
   cache:
     type: redis
     redis:
-      time-to-live: 60000         # mỗi cache sống 60 giây
-      cache-null-values: false    # không cache giá trị null
-      use-key-prefix: true        # sử dụng tiền tố cho các key trong cache
-      key-prefix: "cine-book"     # tiền tố cho các key trong cache
+      time-to-live: 60000
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: "cine-book"
 
   data:
     redis:
       host: localhost
       port: 6379
       password:
-      timeout: 10000              # timeout kết nối tối đa 60 giây
+      timeout: 10000
 
-  # Server Configuration
-  server:
-    port: 8080
+  # Email Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
-  # Swagger
-  springdoc:
-    swagger-ui:
-      path: /swagger-ui.html
-    #    tags-sorter: alpha            # Sắp xếp theo bảng chữ cái alphabetical
-    #    operations-sorter: alpha      # Sắp xếp API methods (GET, POST, PUT, DELETE) theo tên (alphabet).
-    api-docs:
-      path: /v3/api-docs             # Đây là endpoint cung cấp JSON OpenAPI cho Swagger UI.
+# ==========================================================
+# CÁC CẤU HÌNH DƯỚI ĐÂY PHẢI NẰM NGOÀI CÙNG (KHÔNG THỤT VÀO TRONG 'spring')
+# ==========================================================
 
-    # JWT Configuration
-    jwt:
-      secret: ${JWT_SECRET}
-      expirationMs: ${JWT_EXPIRATION_MS:24h}
+# Server Configuration
+server:
+  port: 8080
+
+# Swagger
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# JWT Configuration (Đây là phần sửa lỗi chính)
+jwt:
+  secret: ${JWT_SECRET}
+  # Lưu ý: Kiểm tra lại tên biến trong class Java, bạn đang dùng 'expirationMs' hay 'expiration'?
+  # Nếu lỗi, hãy đổi 'expirationMs' thành 'expiration' cho khớp với file properties cũ.
+  expirationMs: ${JWT_EXPIRATION_MS:86400000}
+  refresh-expiration: ${JWT_REFRESH-EXPIRATION:604800000}
+
