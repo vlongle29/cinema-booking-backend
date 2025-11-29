@@ -65,6 +65,7 @@ public class SysUserServiceImpl implements SysUserService {
 
         SysUser user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setSystemFlag(SystemFlag.NORMAL.getValue());
         SysUser savedUser = sysUserRepository.save(user);
 
         List<UUID> roleIds = request.getRoleIds();
@@ -121,6 +122,16 @@ public class SysUserServiceImpl implements SysUserService {
                 }).collect(Collectors.toList());
                 sysUserRoleRepository.saveAll(newUserRoles);
             }
+
+            // Cập nhật typeAccount theo code của role đầu tiên
+            if (!roleIds.isEmpty()) {
+                String firstRoleCode = roles.stream().filter(r -> r.getId().equals(roleIds.get(0))).findFirst().map(SysRole::getCode).orElse(null);
+                user.setTypeAccount(firstRoleCode);
+            } else {
+                user.setTypeAccount(null);
+            }
+        } else {
+            user.setTypeAccount(null);
         }
 
         SysUser updated = sysUserRepository.save(user);

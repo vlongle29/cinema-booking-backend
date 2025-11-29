@@ -5,7 +5,6 @@ import com.example.CineBook.dto.sysRole.SysRoleResponse;
 import com.example.CineBook.model.SysRole;
 import org.mapstruct.*;
 import org.springframework.data.domain.Page;
-
 import java.util.List;
 import java.util.Map;
 

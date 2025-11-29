@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @MappedSuperclass
-//@EntityListeners(AuditingEntityListener.class)
+@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor
 @Data
 @AllArgsConstructor

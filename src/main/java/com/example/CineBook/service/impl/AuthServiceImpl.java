@@ -77,8 +77,13 @@ public class AuthServiceImpl implements AuthService {
         SysUser user = userMapper.toEntity(request);
         userRepository.save(user);
 
-        // Assign default CUSTOMER role
-        assignDefaultRole(user.getId());
+        // Assign default CUSTOMER role and set typeAccount
+        UUID roleId = assignDefaultRole(user.getId());
+        SysRole role = sysRoleRepository.findById(roleId).orElse(null);
+        if (role != null) {
+            user.setTypeAccount(role.getCode());
+            userRepository.save(user);
+        }
 
         return authMapper.map(request);
     }
@@ -226,7 +231,12 @@ public class AuthServiceImpl implements AuthService {
      * Assign default role CUSTOMER to user when register successfully
      * @param userId
      */
-    private void assignDefaultRole(UUID userId) {
+    private UUID assignDefaultRole(UUID userId) {
+        // Check if user already has role
+        if (sysUserRoleRepository.existsByUserId(userId)) {
+            return sysUserRoleRepository.findByUserId(userId).get(0).getRoleId();
+        }
+        
         SysRole customerRole = sysRoleRepository.findByCode(RoleEnum.CUSTOMER.getValue())
                 .orElseThrow(() -> new IllegalArgumentException("CUSTOMER role not found"));
         
@@ -236,6 +246,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         
         sysUserRoleRepository.save(userRole);
+        return customerRole.getId();
     }
 
     public UserInfoResponse getCurrentUser() {

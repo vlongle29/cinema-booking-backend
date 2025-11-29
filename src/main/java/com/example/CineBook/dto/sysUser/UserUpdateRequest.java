@@ -17,6 +17,7 @@ public class UserUpdateRequest {
     private String avatar;
     private String lockFlag;
     private String systemFlag;
+    private String typeAccount;
 //    private Instant birthday;
 //    private String language;
     private List<UUID> roleIds;

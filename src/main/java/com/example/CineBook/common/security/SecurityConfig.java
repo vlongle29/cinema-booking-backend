@@ -50,7 +50,12 @@ public class SecurityConfig {
             "/api/feedback-reply/**",
             "/api/feedback-reply-detail/**",
             "/api/feedback-type/**",
-            "/api/feedback-type-detail/**"
+            "/api/feedback-type-detail/**",
+            // Thêm các dòng này để cho phép truy cập Swagger
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**"
     };
 
     @Bean

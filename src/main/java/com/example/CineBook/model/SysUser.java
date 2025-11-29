@@ -15,7 +15,7 @@ import java.util.Collections;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "users")
+@Table(name = "sys_user")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
@@ -41,16 +41,22 @@ public class SysUser extends AuditingEntity implements UserDetails {
     private String avatar;
 
     @Column(length = 10)
+    @Builder.Default
     private String lockFlag = "0";
 
     @Column(length = 100)
     private String providerId; // Google ID, Facebook ID, etc.
 
     @Column(name = "failed_login_attempts", nullable = false)
+    @Builder.Default
     private Integer failedLoginAttempts = 0;
 
+    @Column(name = "type_account")
+    private String typeAccount;
+
     @Column(name = "system_flag", length = 20, nullable = false)
-    private String systemFlag; // To distinguish between system users and ordinary users
+    @Builder.Default
+    private String systemFlag = "1"; // To distinguish between system users and ordinary users
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

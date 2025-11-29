@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @StaticMetamodel(SysUserRole.class)
-@Table(name = "user_role")
+@Table(name = "sys_user_role")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data

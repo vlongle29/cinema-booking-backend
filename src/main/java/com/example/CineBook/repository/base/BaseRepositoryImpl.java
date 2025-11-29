@@ -307,12 +307,27 @@ public class BaseRepositoryImpl<T, S extends SearchBaseDto> implements  BaseRepo
         CriteriaUpdate<T> updateQuery = cb.createCriteriaUpdate(domainClass);
         Root<T> root = updateQuery.from(domainClass);
 
+        Instant now = Instant.now();
+        UUID currentUserId = getCurrentUserIdOrAnonymous();
+
         updateQuery.set(root.get("isDelete"), DelFlag.DELETED.getValue());
-        updateQuery.set(root.get("deleteTime"), Instant.now());
-        updateQuery.set(root.get("updateTime"), Instant.now());
+        updateQuery.set(root.get("deleteTime"), now);
+        updateQuery.set(root.get("deleteBy"), currentUserId);
+        updateQuery.set(root.get("updateTime"), now);
+        updateQuery.set(root.get("updateBy"), currentUserId);
         updateQuery.where(root.get("id").in(ids));
 
         return entityManager.createQuery(updateQuery).executeUpdate();
+    }
+
+    private static final UUID ANONYMOUS_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+    private UUID getCurrentUserIdOrAnonymous() {
+        try {
+            return com.example.CineBook.common.security.SecurityUtils.getCurrentUserId();
+        } catch (Exception e) {
+            return ANONYMOUS_USER_ID;
+        }
     }
 
 

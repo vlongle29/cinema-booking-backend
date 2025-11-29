@@ -1,11 +1,13 @@
 package com.example.CineBook.dto.sysUser;
 
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 import lombok.Data;
 import java.util.List;
 import java.util.UUID;
 
 @Data
+@Builder
 public class UserCreateRequest {
     @NotBlank(message = "{USER_USERNAME_REQUIRED}")
     private String username;
@@ -18,7 +20,6 @@ public class UserCreateRequest {
     @NotBlank(message = "{USER_PHONE_REQUIRED}")
     private String phone;
     private String avatar;
-    @NotBlank(message = "{SYSTEM_FLAG_REQUIRED}")
     private String systemFlag;
     @NotBlank(message = "{ROLES_REQUIRED}")
     private List<UUID> roleIds;
