@@ -1,0 +1,590 @@
+{
+  "info": {
+    "name": "CineBook - Employee Management API",
+    "description": "Collection để test các API quản lý Employee với phân quyền nhiều lớp",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cashierToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "branchId",
+      "value": "10000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "employeeUserId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login as SUPER_ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"SuperAdmin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin01\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as MANAGER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('managerToken', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager01\",\n  \"password\": \"Manager@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as CASHIER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('cashierToken', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cashier01\",\n  \"password\": \"Cashier@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Employee Management",
+      "item": [
+        {
+          "name": "Create Employee - CASHIER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('employeeUserId', jsonData.data.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cashier02\",\n  \"password\": \"Cashier@123\",\n  \"name\": \"Lê Thị Thu Ngân 2\",\n  \"email\": \"cashier02@cinebook.com\",\n  \"phone\": \"0907777777\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV006\",\n  \"position\": \"CASHIER\",\n  \"salary\": 8000000,\n  \"hireDate\": \"2024-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee - TECHNICIAN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tech02\",\n  \"password\": \"Tech@123\",\n  \"name\": \"Phạm Văn Kỹ Thuật 2\",\n  \"email\": \"tech02@cinebook.com\",\n  \"phone\": \"0908888888\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV007\",\n  \"position\": \"TECHNICIAN\",\n  \"salary\": 9000000,\n  \"hireDate\": \"2024-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee - CLEANER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cleaner01\",\n  \"password\": \"Cleaner@123\",\n  \"name\": \"Nguyễn Văn Vệ Sinh\",\n  \"email\": \"cleaner01@cinebook.com\",\n  \"phone\": \"0909999999\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV008\",\n  \"position\": \"CLEANER\",\n  \"salary\": 6000000,\n  \"hireDate\": \"2024-02-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Search Employees by Branch",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/search?branchId={{branchId}}&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "search"],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Employees by Position",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/search?position=CASHIER&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "search"],
+              "query": [
+                {
+                  "key": "position",
+                  "value": "CASHIER"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Employee Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee Salary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salary\": 9500000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee Position",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"MANAGER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}"]
+            }
+          }
+        },
+        {
+          "name": "Transfer Employee to Another Branch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"10000000-0000-0000-0000-000000000002\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}", "transfer"]
+            }
+          }
+        },
+        {
+          "name": "Set Branch Manager",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"managerId\": \"{{employeeUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/branch/{{branchId}}/manager",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "branch", "{{branchId}}", "manager"]
+            }
+          }
+        },
+        {
+          "name": "Get Employees by Branch (as Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/branch/{{branchId}}?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "branch", "{{branchId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Employee (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Negative Test Cases",
+      "item": [
+        {
+          "name": "Create Employee - Invalid Position",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"invalid01\",\n  \"password\": \"Invalid@123\",\n  \"name\": \"Invalid Position\",\n  \"email\": \"invalid01@cinebook.com\",\n  \"phone\": \"0910000000\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV999\",\n  \"position\": \"INVALID_POSITION\",\n  \"salary\": 8000000,\n  \"hireDate\": \"2024-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee - Duplicate Employee Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"duplicate01\",\n  \"password\": \"Duplicate@123\",\n  \"name\": \"Duplicate Code\",\n  \"email\": \"duplicate01@cinebook.com\",\n  \"phone\": \"0911111111\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV001\",\n  \"position\": \"CASHIER\",\n  \"salary\": 8000000,\n  \"hireDate\": \"2024-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee - As CASHIER (Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cashierToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"forbidden01\",\n  \"password\": \"Forbidden@123\",\n  \"name\": \"Forbidden User\",\n  \"email\": \"forbidden01@cinebook.com\",\n  \"phone\": \"0912222222\",\n  \"branchId\": \"{{branchId}}\",\n  \"employeeCode\": \"NV998\",\n  \"position\": \"CASHIER\",\n  \"salary\": 8000000,\n  \"hireDate\": \"2024-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "create"]
+            }
+          }
+        },
+        {
+          "name": "Get Employee - Without Token (Unauthorized)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/{{employeeUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "employee", "{{employeeUserId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

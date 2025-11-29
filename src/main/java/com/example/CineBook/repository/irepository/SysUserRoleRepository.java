@@ -30,4 +30,6 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, UUID> 
 
     @Query("select u.userId from SysUserRole u where u.roleId in :roleIds")
     List<UUID> findUserIdsByRoleIds(@Param("roleIds") List<UUID> roleIds);
+
+    boolean existsByUserId(UUID userId);
 }
