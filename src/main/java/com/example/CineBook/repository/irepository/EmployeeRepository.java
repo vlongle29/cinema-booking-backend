@@ -16,4 +16,5 @@ public interface EmployeeRepository extends BaseRepositoryCustom<Employee, Emplo
 //    Boolean existsByEmail(String email);
     Boolean existsByEmployeeCode(String employeeCode);
     List<Employee> findByBranchId(UUID branchId);
+    Optional<Employee> findByUserId(UUID userId);
 }
