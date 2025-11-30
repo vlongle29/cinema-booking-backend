@@ -20,7 +20,7 @@ import java.util.UUID;
 @StaticMetamodel(Employee.class)
 public class Employee extends AuditingEntity {
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", unique = true, nullable = false)
     private UUID userId;
     
     @Column(name = "branch_id", nullable = false)

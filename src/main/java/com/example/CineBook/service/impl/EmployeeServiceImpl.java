@@ -7,15 +7,12 @@ import com.example.CineBook.dto.employee.EmployeeCreateRequest;
 import com.example.CineBook.dto.employee.EmployeeResponse;
 import com.example.CineBook.dto.employee.EmployeeSearchDTO;
 import com.example.CineBook.dto.employee.EmployeeUpdateRequest;
-import com.example.CineBook.dto.sysRole.SysRoleResponse;
 import com.example.CineBook.dto.sysUser.UserCreateRequest;
 import com.example.CineBook.dto.sysUser.UserInfoResponse;
 import com.example.CineBook.mapper.EmployeeMapper;
-import com.example.CineBook.mapper.UserMapper;
 import com.example.CineBook.model.Branch;
 import com.example.CineBook.model.Employee;
 import com.example.CineBook.model.SysRole;
-import com.example.CineBook.model.SysUser;
 import com.example.CineBook.repository.irepository.BranchRepository;
 import com.example.CineBook.repository.irepository.EmployeeRepository;
 import com.example.CineBook.repository.irepository.SysRoleRepository;
@@ -29,9 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +36,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final SysRoleRepository sysRoleRepository;
     private final SysUserService sysUserService;
-    private final SysUserRepository sysUserRepository;
     private final BranchRepository branchRepository;
 
     private static final String ROLE_STAFF_CODE = "STAFF";
@@ -107,7 +101,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeResponse getEmployeeInfo(UUID userId) {
-        Employee employee = employeeRepository.findById(userId)
+        Employee employee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
 
         return employeeMapper.toResponse(employee);
@@ -116,7 +110,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeResponse updateEmployee(UUID userId, EmployeeUpdateRequest request) {
-        Employee employee = employeeRepository.findById(userId)
+        Employee employee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
 
         if (request.getSalary() != null) {
@@ -146,7 +140,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeResponse transferEmployee(UUID userId, UUID branchId) {
-        Employee employee = employeeRepository.findById(userId)
+        Employee employee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
 
         branchRepository.findById(branchId)
@@ -164,11 +158,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         Branch branch = branchRepository.findById(branchId)
                 .orElseThrow(() -> new BusinessException(MessageCode.BRANCH_NOT_FOUND));
 
-        Employee employee = employeeRepository.findById(managerId)
+        Employee employee = employeeRepository.findByUserId(managerId)
                 .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
-
-        SysUser user = sysUserRepository.findById(managerId)
-                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
 
         branch.setManagerId(managerId);
         branchRepository.save(branch);
