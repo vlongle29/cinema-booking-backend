@@ -24,6 +24,7 @@ public enum MessageCode {
     BRANCH_ALREADY_EXISTS,
     BRANCH_HAS_ROOMS,
     ROOM_NOT_FOUND,
+    ROOM_HAS_SEAT,
     SEAT_ALREADY_EXISTS,
 
 
