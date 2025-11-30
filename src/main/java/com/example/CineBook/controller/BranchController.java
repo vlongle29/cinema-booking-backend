@@ -5,6 +5,7 @@ import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.dto.branch.BranchRequest;
 import com.example.CineBook.dto.branch.BranchResponse;
 import com.example.CineBook.dto.branch.BranchSearchDTO;
+import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.service.BranchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class BranchController {
 
     private final BranchService branchService;
+    private final com.example.CineBook.service.RoomService roomService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
@@ -50,9 +52,17 @@ public class BranchController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Operation(summary = "Xóa mềm chi nhánh")
+    @Operation(summary = "Xóa mềm chi nhánh", description = "Chỉ xóa nếu không có phòng nào")
     public ResponseEntity<ApiResponse<Void>> deleteBranch(@PathVariable UUID id) {
         branchService.deleteBranch(id);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @DeleteMapping("/{id}/cascade")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Operation(summary = "Xóa chi nhánh và tất cả phòng, ghế", description = "Xóa cascade: Branch → Rooms → Seats")
+    public ResponseEntity<ApiResponse<Void>> deleteBranchCascade(@PathVariable UUID id) {
+        branchService.deleteBranchCascade(id);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
@@ -70,5 +80,12 @@ public class BranchController {
     public ResponseEntity<ApiResponse<PageResponse<BranchResponse>>> getAllBranches(
             @ModelAttribute BranchSearchDTO searchDTO) {
         return ResponseEntity.ok(ApiResponse.success(branchService.getAllBranches(searchDTO)));
+    }
+
+    @GetMapping("/{branchId}/rooms")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @Operation(summary = "Lấy danh sách phòng theo chi nhánh")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getRoomsByBranch(@PathVariable UUID branchId) {
+        return ResponseEntity.ok(ApiResponse.success(roomService.getRoomsByBranch(branchId)));
     }
 }

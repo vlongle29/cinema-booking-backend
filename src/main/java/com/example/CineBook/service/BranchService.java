@@ -13,6 +13,7 @@ public interface BranchService {
     BranchResponse getBranchById(UUID id);
     BranchResponse updateBranch(UUID id, BranchRequest request);
     void deleteBranch(UUID id);
+    void deleteBranchCascade(UUID id);
     PageResponse<BranchResponse> searchBranches(BranchSearchDTO searchDTO);
     PageResponse<BranchResponse> getAllBranches(BranchSearchDTO searchDTO);
 }

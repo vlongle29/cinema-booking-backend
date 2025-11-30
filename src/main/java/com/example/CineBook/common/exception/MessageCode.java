@@ -19,9 +19,13 @@ public enum MessageCode {
     ASSIGN_ROLE_USER_ID_REQUIRED,
     ASSIGN_ROLE_ROLE_IDS_REQUIRED,
 
-    // Branch
+    // Branch + ROOM + SEAT
     BRANCH_NOT_FOUND,
     BRANCH_ALREADY_EXISTS,
+    BRANCH_HAS_ROOMS,
+    ROOM_NOT_FOUND,
+    SEAT_ALREADY_EXISTS,
+
 
     // Auth & User & Employee & STAFF
     DELETE_FAIL, //new
