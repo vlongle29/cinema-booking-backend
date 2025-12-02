@@ -7,10 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.StaticMetamodel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @StaticMetamodel(SysRole.class)
 @EntityListeners(AuditingEntityListener.class)
@@ -19,6 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder
 public class SysRole extends AuditingEntity {
     @Column(unique = true, length = 100, nullable = false)

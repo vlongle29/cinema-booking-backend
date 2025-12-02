@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class SysRoleController {
 
     @Operation(summary = "Tạo một vai trò mới")
     @PostMapping
-//    @PreAuthorize("hasAuthority('role:create')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<ApiResponse<SysRoleResponse>> createRole(@Valid @RequestBody SysRoleRequest request) {
         SysRoleResponse newRole = sysRoleService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)

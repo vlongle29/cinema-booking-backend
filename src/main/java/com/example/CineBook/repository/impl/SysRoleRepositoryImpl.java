@@ -97,22 +97,24 @@ public class SysRoleRepositoryImpl extends BaseRepositoryImpl<SysRole, SysRoleSe
 
         // FROM SysUserRole
         Root<SysUserRole> userRoleRoot = query.from(SysUserRole.class);
+        Root<SysRole> roleRoot = query.from(SysRole.class);
 
-        // JOIN SysRole
-        Join<SysUserRole, SysRole> roleRoot = userRoleRoot.join("role");
+        List<Predicate> predicates = new ArrayList<>();
+        // JOIN bằng ID
+        predicates.add(cb.equal(userRoleRoot.get(SysUserRole_.ROLE_ID), roleRoot.get(SysRole_.id)));
+        // WHERE userRoleRoot.userId IN (...)
+        predicates.add(userRoleRoot.get("userId").in(userIds));
+
+        query.where(cb.and(predicates.toArray(new Predicate[0])));
 
         // SELECT
         query.select(cb.construct(
                 UserRoleProjection.class,
-                userRoleRoot.get("userId"),
-                roleRoot.get("id"),
-                roleRoot.get("name"),
-                roleRoot.get("code")
+                userRoleRoot.get(SysUserRole_.USER_ID),
+                roleRoot.get(SysRole_.id),
+                roleRoot.get(SysRole_.name),
+                roleRoot.get(SysRole_.CODE)
         ));
-
-        // WHERE user_id IN (...)
-        Predicate predicate = userRoleRoot.get("userId").in(userIds);
-        query.where(predicate);
 
         return entityManager.createQuery(query).getResultList();
     }

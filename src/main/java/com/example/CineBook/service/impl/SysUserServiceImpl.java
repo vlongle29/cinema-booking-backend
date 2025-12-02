@@ -23,6 +23,7 @@ import com.example.CineBook.repository.irepository.SysUserRoleRepository;
 import com.example.CineBook.service.EmailService;
 import com.example.CineBook.service.SysUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SysUserServiceImpl implements SysUserService {
 
     private final SysUserRepository sysUserRepository;
@@ -229,14 +231,16 @@ public class SysUserServiceImpl implements SysUserService {
         return unlockedCount;
     }
 
-    @Cacheable(value = "userInfo", key = "#id")
+    @Cacheable(value = "userInfo", key = "#userId")
     @Override
     public UserInfoResponse getUserDetail(UUID userId) {
         SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
 
         UserInfoResponse userInfoResponse = userMapper.toUserInfoResponse(user);
+        log.info("Building login response for user info: {}", userInfoResponse);
         List<UserRoleProjection> userRoles = sysRolesRepository.findUserRolesByUserIds(List.of(userId));
+        log.info("Building login response for user role: {}", userRoles);
         List<RoleInfo> roles = userRoles.stream().map(r -> new RoleInfo(r.getRoleId(), r.getRoleName(), r.getRoleCode())).toList();
         userInfoResponse.setRoles(roles);
 

@@ -95,23 +95,27 @@ public class SysUserRepositoryImpl extends BaseRepositoryImpl<SysUser, SysUserSe
 
     @Override
     public List<AuthorityProjection> findAllAuthoritiesByUserId(UUID userId) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<AuthorityProjection> query = cb.createQuery(AuthorityProjection.class);
-
-        Root<SysRole> roleRoot = query.from(SysRole.class);
-        Root<SysUserRole> userRoleRoot = query.from(SysUserRole.class);
-        Root<SysRolePermission> rolePermissionRoot = query.from(SysRolePermission.class);
-        Root<SysPermission> permissionRoot = query.from(SysPermission.class);
-
-        query.multiselect(roleRoot.get(SysRole_.code), permissionRoot.get(SysPermission_.code)).distinct(true);
-        query.where(cb.and(
-                cb.equal(userRoleRoot.get(SysUserRole_.userId), userId),
-                cb.equal(roleRoot.get(SysRole_.id), userRoleRoot.get(SysUserRole_.roleId)),
-                cb.equal(roleRoot.get(SysRole_.id), rolePermissionRoot.get(SysRolePermission_.roleId)),
-                cb.equal(rolePermissionRoot.get(SysRolePermission_.permissionId), permissionRoot.get(SysPermission_.id))
-        ));
-
-        return entityManager.createQuery(query).getResultList();
+        String sql = """
+            SELECT DISTINCT r.code as roleCode, p.code as permissionCode
+            FROM sys_user_role ur
+            INNER JOIN sys_role r ON ur.role_id = r.id
+            LEFT JOIN sys_role_permission rp ON r.id = rp.role_id
+            LEFT JOIN sys_permission p ON rp.permission_id = p.id
+            WHERE ur.user_id = :userId
+            """;
+        
+        List<Object[]> results = entityManager.createNativeQuery(sql)
+                .setParameter("userId", userId)
+                .getResultList();
+        
+        List<AuthorityProjection> projections = new ArrayList<>();
+        for (Object[] row : results) {
+            projections.add(new AuthorityProjection(
+                (String) row[0],  // roleCode
+                (String) row[1]   // permissionCode
+            ));
+        }
+        return projections;
     }
 
     @Override

@@ -9,8 +9,10 @@ import com.example.CineBook.dto.sysUser.*;
 import com.example.CineBook.service.SysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -28,7 +30,8 @@ public class SysUserController {
 
     @Operation(summary = "Tạo người dùng mới", description = "Tạo mới một user với thông tin được cung cấp.")
     @PostMapping
-    public ResponseEntity<ApiResponse<UserInfoResponse>> createUser(UserCreateRequest request) {
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<ApiResponse<UserInfoResponse>> createUser(@RequestBody @Valid UserCreateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(sysUserService.createUser(request)));
     }
 

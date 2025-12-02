@@ -1,10 +1,8 @@
 package com.example.CineBook.repository.impl;
 
 import com.example.CineBook.dto.sysPermission.SysPermissionSearchDTO;
-import com.example.CineBook.model.SysPermission;
+import com.example.CineBook.model.*;
 
-import com.example.CineBook.model.SysRolePermission;
-import com.example.CineBook.model.SysUserRole;
 import com.example.CineBook.repository.base.BaseRepositoryImpl;
 import com.example.CineBook.repository.custom.SysPermissionRepositoryCustom;
 
@@ -33,12 +31,12 @@ public class SysPermissionRepositoryImpl extends BaseRepositoryImpl<SysPermissio
         Root<SysRolePermission> rolePermissionRoot = query.from(SysRolePermission.class);
         Root<SysPermission> permissionRoot = query.from(SysPermission.class);
 
-        query.select(permissionRoot.get("permission")).distinct(true);
+        query.select(permissionRoot.get(SysPermission_.permission)).distinct(true);
 
         query.where(cb.and(
-                cb.equal(userRoleRoot.get("userId"), userId),
-                cb.equal(userRoleRoot.get("roleId"), rolePermissionRoot.get("roleId")),
-                cb.equal(rolePermissionRoot.get("permissionId"), permissionRoot.get("id"))
+                cb.equal(userRoleRoot.get(SysUserRole_.userId), userId),
+                cb.equal(userRoleRoot.get("roleId"), rolePermissionRoot.get(SysRolePermission_.ROLE_ID)),
+                cb.equal(rolePermissionRoot.get(SysRolePermission_.PERMISSION_ID), permissionRoot.get(SysPermission_.ID))
         ));
         return entityManager.createQuery(query).getResultList();
     }

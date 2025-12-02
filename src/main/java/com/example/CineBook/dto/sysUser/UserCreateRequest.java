@@ -1,13 +1,19 @@
 package com.example.CineBook.dto.sysUser;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserCreateRequest {
     @NotBlank(message = "{USER_USERNAME_REQUIRED}")
     private String username;
@@ -21,6 +27,6 @@ public class UserCreateRequest {
     private String phone;
     private String avatar;
     private String systemFlag;
-    @NotBlank(message = "{ROLES_REQUIRED}")
+    @NotEmpty(message = "{ROLES_REQUIRED}")
     private List<UUID> roleIds;
 }
