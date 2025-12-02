@@ -66,6 +66,14 @@ public enum MessageCode {
     MANAGER_ALREADY_EXISTS,
     CANNOT_TRANSFER_MANAGER,
 
+    // Genre & Movie
+    GENRE_NOT_FOUND,
+    GENRE_NAME_ALREADY_EXISTS,
+    GENRE_IN_USE,
+    MOVIE_NOT_FOUND,
+    ROOM_NOT_FOUND,
+    ROOM_HAS_SEATS,
+    SEAT_ALREADY_EXISTS,
 
     // General Errors
     INTERNAL_SERVER_ERROR,
