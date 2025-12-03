@@ -5,15 +5,13 @@ import com.example.CineBook.common.constant.RoomType;
 import com.example.CineBook.model.auditing.AuditingEntityListener;
 import jakarta.persistence.*;
 import jakarta.persistence.metamodel.StaticMetamodel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
 @StaticMetamodel(Room.class)
 @EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(callSuper=false)
 @Entity
 @Table(name = "rooms")
 @Data

@@ -25,7 +25,7 @@ public class RoomController {
     private final RoomService roomService;
 
     @PostMapping
-//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Tạo phòng chiếu mới")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@Valid @RequestBody RoomRequest request) {
         return ResponseEntity.ok(ApiResponse.success(roomService.createRoom(request)));

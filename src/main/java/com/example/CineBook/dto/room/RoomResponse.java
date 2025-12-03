@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,7 +19,7 @@ public class RoomResponse {
     private String name;
     private Integer totalSeats;
     private UUID branchId;
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
+    private Instant createTime;
+    private Instant updateTime;
 
 }

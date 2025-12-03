@@ -5,6 +5,7 @@ import com.example.CineBook.dto.room.RoomRequest;
 import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.dto.room.RoomSearchDTO;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface RoomService {

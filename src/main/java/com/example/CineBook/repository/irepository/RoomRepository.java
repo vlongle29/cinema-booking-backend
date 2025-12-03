@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface RoomRepository extends JpaRepository<Room, UUID>, BaseRepositoryCustom<Room, RoomSearchDTO> {
     List<Room> findByBranchId(UUID branchId);
     long countByBranchId(UUID branchId);
+    boolean existsByName(String name);
 }

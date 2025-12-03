@@ -39,6 +39,11 @@ public class RoomServiceImpl implements RoomService {
             throw new BusinessException(MessageCode.BRANCH_NOT_FOUND);
         }
 
+        boolean isExistRoom = roomRepository.existsByName(request.getName());
+        if (isExistRoom) {
+            throw new BusinessException(MessageCode.ROOM_ALREADY_EXISTS);
+        }
+
         Room room = roomMapper.toEntity(request);
         room.setCapacity(0);
         Room saved = roomRepository.save(room);
