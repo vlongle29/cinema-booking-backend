@@ -17,6 +17,7 @@ public interface SeatMapper {
     @Mapping(target = "rowChar", expression = "java(extractRowChar(request.getSeatNumber()))")
     @Mapping(target = "seatNumber", expression = "java(extractSeatNumber(request.getSeatNumber()))")
     @Mapping(target = "roomId", source = "roomId")
+    @Mapping(target = "status", ignore = true)
     Seat toEntity(SeatRequest request, UUID roomId);
     
     default String combineSeatNumber(Seat seat) {

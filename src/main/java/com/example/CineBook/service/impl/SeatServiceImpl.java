@@ -33,6 +33,7 @@ public class SeatServiceImpl implements SeatService {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
 
+        // Check if seat exists
         for (SeatRequest seatReq : request.getSeats()) {
             String rowChar = extractRowChar(seatReq.getSeatNumber());
             Integer seatNum = extractSeatNumber(seatReq.getSeatNumber());
@@ -42,12 +43,14 @@ public class SeatServiceImpl implements SeatService {
             }
         }
 
+        // Assign roomId to seat
         List<Seat> seats = request.getSeats().stream()
                 .map(seatReq -> seatMapper.toEntity(seatReq, request.getRoomId()))
                 .collect(Collectors.toList());
 
         List<Seat> saved = seatRepository.saveAll(seats);
-        
+
+        // Set capacity for room
         room.setCapacity((int) seatRepository.countByRoomId(request.getRoomId()));
         roomRepository.save(room);
         

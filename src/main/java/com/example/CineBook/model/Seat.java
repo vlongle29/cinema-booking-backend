@@ -5,10 +5,7 @@ import com.example.CineBook.common.constant.SeatStatus;
 import com.example.CineBook.common.constant.SeatType;
 import jakarta.persistence.*;
 import jakarta.persistence.metamodel.StaticMetamodel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -16,6 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "seats")
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -47,6 +45,7 @@ public class Seat extends AuditingEntity {
     /**
      * Physical state (AVAILABLE, BROKEN)
      */
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column
     private SeatStatus status = SeatStatus.AVAILABLE;
