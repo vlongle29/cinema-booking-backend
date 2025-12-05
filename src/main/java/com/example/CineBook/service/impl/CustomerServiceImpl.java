@@ -23,6 +23,8 @@ import com.example.CineBook.service.CustomerService;
 import com.example.CineBook.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -139,7 +141,8 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<CustomerResponse> searchCustomers(CustomerSearchDTO searchDTO) {
-        Page<Customer> entityPage = customerRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage(), searchDTO.getSize());
+        Page<Customer> entityPage = customerRepository.searchWithFilters(searchDTO, pageable);
         Page<CustomerResponse> responsePage = customerMapper.mapPage(entityPage, Collections.emptyMap());
         return PageResponse.of(responsePage);
     }

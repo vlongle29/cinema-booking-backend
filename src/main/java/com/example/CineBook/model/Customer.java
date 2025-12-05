@@ -38,6 +38,7 @@ public class Customer extends AuditingEntity {
     /**
      * Used to auto calculate discount
      */
+    @Builder.Default
     @Column(name = "membership_level", length = 20)
     @Enumerated(EnumType.STRING)
     private MembershipLevelEnum membershipLevel = MembershipLevelEnum.BRONZE; // BRONZE, SILVER, GOLD, PLATINUM
@@ -46,5 +47,6 @@ public class Customer extends AuditingEntity {
      * Used to redeem gifts or upgrades. Increase upon successful ticket purchase
      */
     @Column(name = "loyalty_points")
+    @Builder.Default
     private Integer loyaltyPoints = 0;
 }

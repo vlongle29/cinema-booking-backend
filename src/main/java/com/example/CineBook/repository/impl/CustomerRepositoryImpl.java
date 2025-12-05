@@ -13,34 +13,37 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class CustomerRepositoryImpl implements CustomerRepositoryCustom {
 
     @PersistenceContext
     private EntityManager entityManager;
 
     @Override
-    public Page<Customer> findAllWithFilters(CustomerSearchDTO searchDTO) {
+    public Page<Customer> searchWithFilters(CustomerSearchDTO searchDTO, Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Customer> query = cb.createQuery(Customer.class);
         Root<Customer> customer = query.from(Customer.class);
-        Join<Customer, SysUser> user = customer.join("userId");
+        Root<SysUser> sysUser = query.from(SysUser.class);
 
         List<Predicate> predicates = new ArrayList<>();
 
         // Filter by soft delete
+        predicates.add(cb.equal(customer.get(Customer_.userId), sysUser.get(SysUser_.id)));
         predicates.add(cb.equal(customer.get(Customer_.isDelete), false));
 
         // Search by keyword (name, email, phone)
         if (StringUtils.hasText(searchDTO.getKeyword())) {
             String keyword = "%" + searchDTO.getKeyword().toLowerCase() + "%";
-            Predicate namePredicate = cb.like(cb.lower(user.get(SysUser_.name)), keyword);
-            Predicate emailPredicate = cb.like(cb.lower(user.get(SysUser_.email)), keyword);
-            Predicate phonePredicate = cb.like(user.get(SysUser_.phone), keyword);
+            Predicate namePredicate = cb.like(cb.lower(sysUser.get(SysUser_.name)), keyword);
+            Predicate emailPredicate = cb.like(cb.lower(sysUser.get(SysUser_.email)), keyword);
+            Predicate phonePredicate = cb.like(sysUser.get(SysUser_.phone), keyword);
             predicates.add(cb.or(namePredicate, emailPredicate, phonePredicate));
         }
 
@@ -56,10 +59,9 @@ public class CustomerRepositoryImpl implements CustomerRepositoryCustom {
         }
 
         query.where(predicates.toArray(new Predicate[0]));
-        query.orderBy(cb.desc(customer.get(Customer_.createdAt)));
+        query.orderBy(cb.desc(customer.get(Customer_.createTime)));
 
         // Pagination
-        Pageable pageable = PageRequest.of(searchDTO.getPage(), searchDTO.getSize());
         List<Customer> customers = entityManager.createQuery(query)
                 .setFirstResult((int) pageable.getOffset())
                 .setMaxResults(pageable.getPageSize())
@@ -68,9 +70,30 @@ public class CustomerRepositoryImpl implements CustomerRepositoryCustom {
         // Count total
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<Customer> countRoot = countQuery.from(Customer.class);
-        countRoot.join("userId");
+        Root<SysUser> countUser = countQuery.from(SysUser.class);
+
+        List<Predicate> countPredicates = new ArrayList<>();
+        countPredicates.add(cb.equal(countRoot.get(Customer_.userId), countUser.get(SysUser_.id)));
+        countPredicates.add(cb.equal(countRoot.get(Customer_.isDelete), false));
+
+        if (StringUtils.hasText(searchDTO.getKeyword())) {
+            String keyword = "%" + searchDTO.getKeyword().toLowerCase() + "%";
+            countPredicates.add(cb.or(
+                    cb.like(cb.lower(countUser.get(SysUser_.name)), keyword),
+                    cb.like(cb.lower(countUser.get(SysUser_.email)), keyword),
+                    cb.like(countUser.get(SysUser_.phone), keyword)
+            ));
+        }
+        if (StringUtils.hasText(searchDTO.getMembershipLevel())) {
+            countPredicates.add(cb.equal(countRoot.get(Customer_.membershipLevel), searchDTO.getMembershipLevel()));
+        }
+        if (StringUtils.hasText(searchDTO.getCity())) {
+            countPredicates.add(cb.like(cb.lower(countRoot.get(Customer_.city)),
+                    "%" + searchDTO.getCity().toLowerCase() + "%"));
+        }
+
         countQuery.select(cb.count(countRoot));
-        countQuery.where(predicates.toArray(new Predicate[0]));
+        countQuery.where(countPredicates.toArray(new Predicate[0]));
         Long total = entityManager.createQuery(countQuery).getSingleResult();
 
         return new PageImpl<>(customers, pageable, total);
