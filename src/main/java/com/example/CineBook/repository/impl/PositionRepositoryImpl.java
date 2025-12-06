@@ -1,17 +1,19 @@
-package com.example.CineBook.repository.specification;
+package com.example.CineBook.repository.impl;
 
 import com.example.CineBook.dto.position.PositionSearchDTO;
 import com.example.CineBook.model.Position;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PositionSpecification {
+@Repository
+public class PositionRepositoryImpl {
 
-    public static Specification<Position> withFilters(PositionSearchDTO searchDTO) {
+    public Specification<Position> searchWithFilters(PositionSearchDTO searchDTO) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 

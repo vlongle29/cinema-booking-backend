@@ -8,7 +8,7 @@ import com.example.CineBook.dto.position.PositionResponse;
 import com.example.CineBook.dto.position.PositionSearchDTO;
 import com.example.CineBook.model.Position;
 import com.example.CineBook.repository.irepository.PositionRepository;
-import com.example.CineBook.repository.specification.PositionSpecification;
+import com.example.CineBook.repository.impl.PositionRepositoryImpl;
 import com.example.CineBook.service.PositionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -81,7 +81,7 @@ public class PositionServiceImpl implements PositionService {
     @Override
     public PageResponse<PositionResponse> searchPositions(PositionSearchDTO searchDTO) {
         Pageable pageable = PageRequest.of(searchDTO.getPage(), searchDTO.getSize());
-        Page<Position> page = positionRepository.findAll(PositionSpecification.withFilters(searchDTO), pageable);
+        Page<Position> page = positionRepository.findAll(positionRepository.searchWithFilters(searchDTO), pageable);
         Page<PositionResponse> responsePage = page.map(this::toResponse);
         return PageResponse.of(responsePage);
     }
