@@ -35,6 +35,13 @@ public enum MessageCode {
     MOVIE_NOT_FOUND,
     ROOM_HAS_SEATS,
 
+    // Showtimes
+    SHOWTIME_NOT_FOUND,
+    SHOWTIME_TIME_OVERLAP,
+    SHOWTIME_INVALID_TIME_RANGE,
+    SHOWTIME_ALREADY_FINISHED,
+    SHOWTIME_HAS_BOOKINGS,
+
 
 
     // Auth & User & Employee & STAFF & POSITION
