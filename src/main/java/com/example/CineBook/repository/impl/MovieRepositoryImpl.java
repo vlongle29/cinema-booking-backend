@@ -26,7 +26,7 @@ public class MovieRepositoryImpl implements MovieRepositoryCustom {
     private EntityManager entityManager;
 
     @Override
-    public Page<Movie> findAllWithFilters(MovieSearchDTO searchDTO, Pageable pageable) {
+    public Page<Movie> searchWithFilters(MovieSearchDTO searchDTO, Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Movie> query = cb.createQuery(Movie.class);
         Root<Movie> movie = query.from(Movie.class);

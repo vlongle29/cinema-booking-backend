@@ -6,5 +6,5 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface MovieRepositoryCustom {
-    Page<Movie> findAllWithFilters(MovieSearchDTO searchDTO, Pageable pageable);
+    Page<Movie> searchWithFilters(MovieSearchDTO searchDTO, Pageable pageable);
 }

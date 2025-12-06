@@ -16,6 +16,8 @@ import com.example.CineBook.repository.irepository.SeatRepository;
 import com.example.CineBook.service.BranchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,14 +105,16 @@ public class BranchServiceImpl implements BranchService {
 
     @Override
     public PageResponse<BranchResponse> searchBranches(BranchSearchDTO searchDTO) {
-        Page<Branch> entityPage = branchRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Branch> entityPage = branchRepository.searchWithFilters(searchDTO, pageable);
         Page<BranchResponse> responsePage = entityPage.map(branchMapper::toResponse);
         return PageResponse.of(responsePage);
     }
 
     @Override
     public PageResponse<BranchResponse> getAllBranches(BranchSearchDTO searchDTO) {
-        Page<Branch> entityPage = branchRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Branch> entityPage = branchRepository.searchWithFilters(searchDTO, pageable);
         Page<BranchResponse> responsePage = entityPage.map(branchMapper::toResponse);
         return PageResponse.of(responsePage);
     }

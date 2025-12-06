@@ -23,6 +23,8 @@ import com.example.CineBook.service.EmployeeService;
 import com.example.CineBook.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,7 +98,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         searchDTO.setPage(page);
         searchDTO.setSize(size);
 
-        Page<Employee> employeePage = employeeRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Employee> employeePage = employeeRepository.searchWithFilters(searchDTO, pageable);
         Page<EmployeeResponse> responsePage = employeeMapper.mapPage(employeePage, Collections.emptyMap());
 
         return PageResponse.of(responsePage);
@@ -199,7 +203,8 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     public PageResponse<EmployeeResponse> searchEmployees(EmployeeSearchDTO searchDTO) {
-        Page<Employee> entityPage = employeeRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Employee> entityPage = employeeRepository.searchWithFilters(searchDTO, pageable);
         Page<EmployeeResponse> responsePage = employeeMapper.mapPage(entityPage, Collections.emptyMap());
 
         return PageResponse.of(responsePage);

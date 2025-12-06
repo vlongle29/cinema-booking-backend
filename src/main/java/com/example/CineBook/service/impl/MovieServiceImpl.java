@@ -20,6 +20,8 @@ import com.example.CineBook.repository.irepository.MovieRepository;
 import com.example.CineBook.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +69,8 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<MovieResponse> searchMovies(MovieSearchDTO searchDTO) {
-        Page<Movie> entityPage = movieRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Movie> entityPage = movieRepository.searchWithFilters(searchDTO, pageable);
         Page<MovieResponse> responsePage = entityPage.map(this::buildMovieResponse);
         return PageResponse.of(responsePage);
     }

@@ -14,6 +14,8 @@ import com.example.CineBook.repository.irepository.MovieGenreRepository;
 import com.example.CineBook.service.GenreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +55,8 @@ public class GenreServiceImpl implements GenreService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<GenreResponse> searchGenres(GenreSearchDTO searchDTO) {
-        Page<Genre> entityPage = genreRepository.findAllWithFilters(searchDTO);
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Genre> entityPage = genreRepository.searchWithFilters(searchDTO, pageable);
         Page<GenreResponse> responsePage = entityPage.map(genreMapper::toResponse);
         return PageResponse.of(responsePage);
     }
