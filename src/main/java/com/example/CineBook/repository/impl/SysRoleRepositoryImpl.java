@@ -73,7 +73,11 @@ public class SysRoleRepositoryImpl extends BaseRepositoryImpl<SysRole, SysRoleSe
                 SysRoleResponse.class,
                 roleRoot.get(SysRole_.id),
                 roleRoot.get(SysRole_.code),
-                roleRoot.get(SysRole_.name)
+                roleRoot.get(SysRole_.name),
+                roleRoot.get(SysRole_.description),
+                roleRoot.get(SysRole_.createTime),
+                roleRoot.get(SysRole_.updateTime),
+                roleRoot.get(SysRole_.updateBy)
         )).distinct(true);
 
         cq.where(

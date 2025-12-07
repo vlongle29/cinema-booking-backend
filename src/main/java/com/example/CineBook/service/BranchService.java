@@ -16,4 +16,5 @@ public interface BranchService {
     void deleteBranchCascade(UUID id);
     PageResponse<BranchResponse> searchBranches(BranchSearchDTO searchDTO);
     PageResponse<BranchResponse> getAllBranches(BranchSearchDTO searchDTO);
+    BranchResponse restoreBranch(UUID id);
 }

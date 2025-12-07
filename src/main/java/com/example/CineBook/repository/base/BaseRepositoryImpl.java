@@ -322,6 +322,48 @@ public abstract class BaseRepositoryImpl<T, S extends SearchBaseDto> implements 
 
     private static final UUID ANONYMOUS_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
+    /**
+     * Khôi phục một entity đã bị xóa mềm theo ID.
+     *
+     * @param id UUID của entity cần khôi phục.
+     * @return Số lượng bản ghi đã được cập nhật (0 hoặc 1).
+     */
+    @Override
+    public int restoreById(UUID id) {
+        if (id == null) {
+            return 0;
+        }
+        return this.restoreByIds(List.of(id));
+    }
+
+    /**
+     * Khôi phục hàng loạt entity đã bị xóa mềm theo danh sách ID.
+     *
+     * @param ids Danh sách UUID của các entity cần khôi phục.
+     * @return Số lượng bản ghi đã được cập nhật.
+     */
+    @Override
+    public int restoreByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaUpdate<T> updateQuery = cb.createCriteriaUpdate(domainClass);
+        Root<T> root = updateQuery.from(domainClass);
+
+        Instant now = Instant.now();
+        UUID currentUserId = getCurrentUserIdOrAnonymous();
+
+        updateQuery.set(root.get("isDelete"), DelFlag.NORMAL.getValue());
+        updateQuery.set(root.get("deleteTime"), (Instant) null);
+        updateQuery.set(root.get("deleteBy"), (UUID) null);
+        updateQuery.set(root.get("updateTime"), now);
+        updateQuery.set(root.get("updateBy"), currentUserId);
+        updateQuery.where(root.get("id").in(ids));
+
+        return entityManager.createQuery(updateQuery).executeUpdate();
+    }
+
     private UUID getCurrentUserIdOrAnonymous() {
         try {
             return com.example.CineBook.common.security.SecurityUtils.getCurrentUserId();

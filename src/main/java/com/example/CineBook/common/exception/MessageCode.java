@@ -18,6 +18,7 @@ public enum MessageCode {
     ROLE_CODE_REQUIRED,
     ASSIGN_ROLE_USER_ID_REQUIRED,
     ASSIGN_ROLE_ROLE_IDS_REQUIRED,
+    ROLE_MUST_BE_ADMIN,
 
     // Branch + ROOM + SEAT
     BRANCH_NOT_FOUND,
@@ -27,6 +28,8 @@ public enum MessageCode {
     ROOM_HAS_SEAT,
     ROOM_ALREADY_EXISTS,
     SEAT_ALREADY_EXISTS,
+
+
 
     // Genres, Movies, Movie-Genre
     GENRE_NAME_ALREADY_EXISTS,
@@ -41,7 +44,6 @@ public enum MessageCode {
     SHOWTIME_INVALID_TIME_RANGE,
     SHOWTIME_ALREADY_FINISHED,
     SHOWTIME_HAS_BOOKINGS,
-
 
 
     // Auth & User & Employee & STAFF & POSITION

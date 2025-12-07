@@ -19,8 +19,8 @@ public interface BaseRepositoryCustom<T, S> {
     // --- Soft Delete & Restore ---
     int softDeleteById(UUID id);
     int softDeleteByIds(List<UUID> ids);
-//    int restoreById(UUID id);
-//    int restoreByIds(List<UUID> ids);
+    int restoreById(UUID id);
+    int restoreByIds(List<UUID> ids);
 
     // --- Batch Update & Delete ---
     int updateFieldByFilter(S searchDTO, String fieldName, Object value);

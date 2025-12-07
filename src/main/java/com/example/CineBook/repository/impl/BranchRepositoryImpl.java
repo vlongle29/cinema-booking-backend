@@ -3,6 +3,7 @@ package com.example.CineBook.repository.impl;
 import com.example.CineBook.dto.branch.BranchSearchDTO;
 import com.example.CineBook.model.Branch;
 import com.example.CineBook.model.Branch_;
+import com.example.CineBook.repository.base.BaseRepositoryImpl;
 import com.example.CineBook.repository.custom.BranchRepositoryCustom;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -20,7 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class BranchRepositoryImpl implements BranchRepositoryCustom {
+public class BranchRepositoryImpl extends BaseRepositoryImpl<Branch, BranchSearchDTO> implements BranchRepositoryCustom {
+
+    public BranchRepositoryImpl() {
+        super(Branch.class);
+    }
 
     @PersistenceContext
     private EntityManager entityManager;
