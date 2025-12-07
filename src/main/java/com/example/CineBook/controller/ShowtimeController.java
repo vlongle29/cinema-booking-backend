@@ -33,7 +33,7 @@ public class ShowtimeController {
         return ResponseEntity.ok(ApiResponse.success(showtimeService.createShowtime(request)));
     }
     
-    @GetMapping
+    @GetMapping("/search")
     @Operation(summary = "Tìm kiếm suất chiếu")
     public ResponseEntity<ApiResponse<PageResponse<ShowtimeResponse>>> searchShowtimes(
             @ModelAttribute ShowtimeSearchDTO searchDTO) {

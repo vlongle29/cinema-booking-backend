@@ -94,7 +94,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Transactional(readOnly = true)
     public PageResponse<ShowtimeResponse> searchShowtimes(ShowtimeSearchDTO searchDTO) {
         Pageable pageable = PageRequest.of(
-            searchDTO.getPage() != null ? searchDTO.getPage() : 0,
+            searchDTO.getPage() != null ? searchDTO.getPage() - 1 : 0,
             searchDTO.getSize() != null ? searchDTO.getSize() : 10
         );
         Page<Showtime> entityPage = showtimeRepository.findAll(showtimeRepository.searchWithFilters(searchDTO), pageable);

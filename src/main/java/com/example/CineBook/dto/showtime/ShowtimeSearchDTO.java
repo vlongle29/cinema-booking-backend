@@ -1,23 +1,20 @@
 package com.example.CineBook.dto.showtime;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.example.CineBook.common.dto.request.SearchBaseDto;
+import lombok.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShowtimeSearchDTO {
+public class ShowtimeSearchDTO extends SearchBaseDto {
     private UUID movieId;
     private UUID branchId;
     private UUID roomId;
     private LocalDate date;
-    private Integer page = 0;
-    private Integer size = 10;
 }
