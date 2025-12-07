@@ -42,6 +42,11 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @Transactional
     public MovieResponse createMovie(CreateMovieRequest request) {
+        // Validate movie title uniqueness
+        if (movieRepository.existsByTitle(request.getTitle())) {
+            throw new BusinessException(MessageCode.MOVIE_ALREADY_EXISTS);
+        }
+
         // Validate all genreIds exist
         for (UUID genreId : request.getGenreIds()) {
             if (!genreRepository.existsById(genreId)) {
