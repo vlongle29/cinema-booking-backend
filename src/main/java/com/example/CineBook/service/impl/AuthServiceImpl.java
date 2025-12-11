@@ -15,9 +15,11 @@ import com.example.CineBook.dto.sysUser.UserInfoResponse;
 import com.example.CineBook.mapper.AuthMapper;
 import com.example.CineBook.mapper.UserMapper;
 import com.example.CineBook.model.BlacklistedToken;
+import com.example.CineBook.model.Customer;
 import com.example.CineBook.model.SysRole;
 import com.example.CineBook.model.SysUser;
 import com.example.CineBook.model.SysUserRole;
+import com.example.CineBook.repository.irepository.CustomerRepository;
 import com.example.CineBook.repository.irepository.SysRoleRepository;
 import com.example.CineBook.repository.irepository.SysUserRepository;
 import com.example.CineBook.repository.irepository.SysUserRoleRepository;
@@ -47,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final SysUserRepository userRepository;
     private final SysRoleRepository sysRoleRepository;
     private final SysUserRoleRepository sysUserRoleRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AuthMapper authMapper;
@@ -87,6 +90,12 @@ public class AuthServiceImpl implements AuthService {
             user.setTypeAccount(role.getCode());
             userRepository.save(user);
         }
+
+        // Create customer profile
+        Customer customer = Customer.builder()
+                .userId(user.getId())
+                .build();
+        customerRepository.save(customer);
 
         return authMapper.map(request);
     }
