@@ -9,6 +9,6 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = false)
 public class BranchSearchDTO extends SearchBaseDto {
     private String name;
-    private String city;
+    private String cityId;
     private UUID managerId;
 }

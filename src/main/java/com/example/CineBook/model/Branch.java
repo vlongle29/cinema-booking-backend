@@ -29,8 +29,8 @@ public class Branch extends AuditingEntity {
     @Column
     private String address;
     
-    @Column
-    private String city;
+    @Column(name = "city_id")
+    private UUID cityId;
     
     @Column(name = "manager_id")
     private UUID managerId;

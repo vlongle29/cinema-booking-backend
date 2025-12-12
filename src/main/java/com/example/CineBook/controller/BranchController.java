@@ -28,7 +28,7 @@ public class BranchController {
     private final com.example.CineBook.service.RoomService roomService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Tạo chi nhánh mới")
     public ResponseEntity<ApiResponse<BranchResponse>> createBranch(@Valid @RequestBody BranchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(branchService.createBranch(request)));
@@ -51,7 +51,7 @@ public class BranchController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Xóa mềm chi nhánh", description = "Chỉ xóa nếu không có phòng nào")
     public ResponseEntity<ApiResponse<Void>> deleteBranch(@PathVariable UUID id) {
         branchService.deleteBranch(id);
@@ -59,7 +59,7 @@ public class BranchController {
     }
 
     @DeleteMapping("/{id}/cascade")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Xóa chi nhánh và tất cả phòng, ghế", description = "Xóa cascade: Branch → Rooms → Seats")
     public ResponseEntity<ApiResponse<Void>> deleteBranchCascade(@PathVariable UUID id) {
         branchService.deleteBranchCascade(id);
@@ -88,4 +88,12 @@ public class BranchController {
     public ResponseEntity<ApiResponse<List<RoomResponse>>> getRoomsByBranch(@PathVariable UUID branchId) {
         return ResponseEntity.ok(ApiResponse.success(roomService.getRoomsByBranch(branchId)));
     }
+
+    @PutMapping("/{id}/restore")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    @Operation(summary = "Khôi phục chi nhánh và tất cả phòng, ghế")
+    public ResponseEntity<ApiResponse<BranchResponse>> restoreBranch(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(branchService.restoreBranch(id)));
+    }
+
 }

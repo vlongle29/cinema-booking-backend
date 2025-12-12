@@ -61,9 +61,8 @@ public class BranchRepositoryImpl extends BaseRepositoryImpl<Branch, BranchSearc
                     "%" + searchDTO.getName().toLowerCase() + "%"));
         }
 
-        if (StringUtils.hasText(searchDTO.getCity())) {
-            predicates.add(cb.like(cb.lower(branch.get(Branch_.city)),
-                    "%" + searchDTO.getCity().toLowerCase() + "%"));
+        if (searchDTO.getCityId() != null) {
+            predicates.add(cb.equal(branch.get(Branch_.cityId), searchDTO.getCityId()));
         }
 
         if (searchDTO.getManagerId() != null) {
