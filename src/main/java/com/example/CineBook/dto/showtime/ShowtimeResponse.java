@@ -1,5 +1,6 @@
 package com.example.CineBook.dto.showtime;
 
+import com.example.CineBook.common.constant.MovieFormat;
 import com.example.CineBook.dto.branch.BranchResponse;
 import com.example.CineBook.dto.movie.MovieResponse;
 import com.example.CineBook.dto.room.RoomResponse;
@@ -25,6 +26,7 @@ public class ShowtimeResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BigDecimal price;
+    private MovieFormat format;
     private String status;
     
     private MovieResponse movie;

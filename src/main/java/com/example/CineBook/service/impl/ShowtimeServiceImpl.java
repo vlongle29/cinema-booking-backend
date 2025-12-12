@@ -1,26 +1,19 @@
 package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.constant.DelFlag;
+import com.example.CineBook.common.constant.MovieFormat;
 import com.example.CineBook.common.constant.ShowtimeStatus;
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
-import com.example.CineBook.dto.showtime.CreateShowtimeRequest;
-import com.example.CineBook.dto.showtime.ShowtimeResponse;
-import com.example.CineBook.dto.showtime.ShowtimeSearchDTO;
-import com.example.CineBook.dto.showtime.UpdateShowtimeRequest;
+import com.example.CineBook.dto.city.CityResponse;
+import com.example.CineBook.dto.showtime.*;
 import com.example.CineBook.mapper.BranchMapper;
 import com.example.CineBook.mapper.MovieMapper;
 import com.example.CineBook.mapper.RoomMapper;
 import com.example.CineBook.mapper.ShowtimeMapper;
-import com.example.CineBook.model.Branch;
-import com.example.CineBook.model.Movie;
-import com.example.CineBook.model.Room;
-import com.example.CineBook.model.Showtime;
-import com.example.CineBook.repository.irepository.BranchRepository;
-import com.example.CineBook.repository.irepository.MovieRepository;
-import com.example.CineBook.repository.irepository.RoomRepository;
-import com.example.CineBook.repository.irepository.ShowtimeRepository;
+import com.example.CineBook.model.*;
+import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,8 +22,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +36,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final MovieRepository movieRepository;
     private final RoomRepository roomRepository;
     private final BranchRepository branchRepository;
+    private final CityRepository cityRepository;
     private final ShowtimeMapper showtimeMapper;
     private final MovieMapper movieMapper;
     private final RoomMapper roomMapper;
@@ -121,10 +118,10 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         Showtime showtime = showtimeRepository.findById(id)
             .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
         
-        // Check if showtime is finished
-        if (showtime.getStatus() == ShowtimeStatus.CLOSED) {
-            throw new BusinessException(MessageCode.SHOWTIME_ALREADY_FINISHED);
-        }
+//        // Check if showtime is finished
+//        if (showtime.getStatus() == ShowtimeStatus.CLOSED) {
+//            throw new BusinessException(MessageCode.SHOWTIME_ALREADY_FINISHED);
+//        }
         
         // Validate time range if both times are provided
         if (request.getStartTime() != null && request.getEndTime() != null) {
@@ -215,5 +212,281 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         });
         
         return response;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<LocalDate> getAvailableDates(UUID movieId) {
+        LocalDate today = LocalDate.now();
+        return showtimeRepository.findAvailableDatesByMovieId(movieId, today);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<CityResponse> getAvailableCities(UUID movieId, LocalDate date) {
+        List<City> cities = cityRepository.findAvailableCitiesByMovieAndDate(movieId, date);
+        return cities.stream()
+            .map(city -> CityResponse.builder()
+                .id(city.getId())
+                .name(city.getName())
+                .code(city.getCode())
+                .build())
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovieFormat> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId) {
+        return showtimeRepository.findAvailableFormatsByMovieAndCityAndDate(movieId, cityId, date);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<ShowtimeGroupedByBranchResponse> getShowtimesGroupedByBranch(
+            UUID movieId, LocalDate date, UUID cityId, MovieFormat format) {
+        
+        ShowtimeSearchDTO searchDTO = ShowtimeSearchDTO.builder()
+            .movieId(movieId)
+            .date(date)
+            .cityId(cityId)
+            .format(format)
+            .build();
+        
+        List<Showtime> showtimes = showtimeRepository.findAll(
+            showtimeRepository.searchWithFilters(searchDTO));
+
+        // Group showtime list by branchId into a Map
+        Map<UUID, List<Showtime>> groupedByBranch = new HashMap<>();
+        for (Showtime showtime : showtimes) {
+            UUID branchId = showtime.getBranchId();
+            if (!groupedByBranch.containsKey(branchId)) {
+                groupedByBranch.put(branchId, new ArrayList<>());
+            }
+            groupedByBranch.get(branchId);
+        }
+        
+        return groupedByBranch.entrySet().stream()
+            .map(entry -> {
+                UUID branchId = entry.getKey();
+                List<Showtime> branchShowtimes = entry.getValue();
+                
+                Branch branch = branchRepository.findById(branchId).orElse(null);
+                if (branch == null || Boolean.TRUE.equals(branch.getIsDelete())) {
+                    return null;
+                }
+                
+                List<ShowtimeItemResponse> items = branchShowtimes.stream()
+                    .map(showtime -> {
+                        Room room = roomRepository.findById(showtime.getRoomId()).orElse(null);
+                        return ShowtimeItemResponse.builder()
+                            .showtimeId(showtime.getId())
+                            .startTime(showtime.getStartTime())
+                            .format(showtime.getFormat())
+                            .roomName(room != null ? room.getName() : "Unknown")
+                            .availableSeats(room != null ? room.getCapacity() : 0)
+                            .build();
+                    })
+                    .sorted(Comparator.comparing(ShowtimeItemResponse::getStartTime))
+                    .collect(Collectors.toList());
+                
+                return ShowtimeGroupedByBranchResponse.builder()
+                    .branchId(branchId)
+                    .branchName(branch.getName())
+                    .showtimes(items)
+                    .build();
+            })
+            .filter(Objects::nonNull)
+            .sorted(Comparator.comparing(ShowtimeGroupedByBranchResponse::getBranchName))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     *
+     * Data when response
+     * {
+     *   "2025-12-08": [
+     *     {
+     *       "id": "uuid",
+     *       "movieTitle": "Avatar 3",
+     *       "startTime": "13:30",
+     *       "endTime": "16:00",
+     *       "format": "3D"
+     *     },
+     *     {
+     *       "id": "uuid",
+     *       "movieTitle": "Spider-Man",
+     *       "startTime": "18:00",
+     *       "endTime": "20:30",
+     *       "format": "2D"
+     *     }
+     *   ],
+     *   "2025-12-09": [
+     *     {
+     *       "id": "uuid",
+     *       "movieTitle": "Avatar 3",
+     *       "startTime": "14:00",
+     *       "endTime": "16:30",
+     *       "format": "3D"
+     *     }
+     *   ],
+     *   "2025-12-10": [],
+     *   "2025-12-11": [...]
+     * }
+     * @param roomId
+     * @param startDate
+     * @param endDate
+     * @return
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public RoomShowtimeResponse getShowtimesByRoom(UUID roomId, LocalDate startDate, LocalDate endDate) {
+        // Validate room exists
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(room.getIsDelete())) {
+            throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
+        }
+        
+        // Get existing showtimes
+        List<Showtime> showtimes = showtimeRepository.findByRoomAndDateRange(roomId, startDate, endDate);
+        
+        // Group by date
+        Map<LocalDate, List<RoomShowtimeResponse.ShowtimeSlot>> showtimesByDate = new LinkedHashMap<>();
+        
+        for (Showtime showtime : showtimes) {
+            LocalDate date = showtime.getStartTime().toLocalDate();
+            
+            Movie movie = movieRepository.findById(showtime.getMovieId()).orElse(null);
+            
+            RoomShowtimeResponse.ShowtimeSlot slot = RoomShowtimeResponse.ShowtimeSlot.builder()
+                .id(showtime.getId())
+                .movieTitle(movie != null ? movie.getTitle() : "Unknown")
+                .startTime(showtime.getStartTime().toLocalTime())
+                .endTime(showtime.getEndTime().toLocalTime())
+                .format(showtime.getFormat() != null ? showtime.getFormat().name() : null)
+                .build();
+            
+            showtimesByDate.computeIfAbsent(date, k -> new ArrayList<>()).add(slot);
+        }
+        
+        return RoomShowtimeResponse.builder()
+            .showtimesByDate(showtimesByDate)
+            .build();
+    }
+    
+    @Override
+    @Transactional
+    public BulkCreateShowtimeResponse bulkCreateShowtimes(BulkCreateShowtimeRequest request) {
+        // Validate date range
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new BusinessException(MessageCode.SHOWTIME_INVALID_DATE_RANGE);
+        }
+        
+        // Calculate total showtimes
+        long days = request.getStartDate().datesUntil(request.getEndDate().plusDays(1)).count();
+        int totalShowtimes = (int) (days * request.getTimeSlots().size());
+        
+        if (totalShowtimes > 100) {
+            throw new BusinessException(MessageCode.SHOWTIME_BULK_LIMIT_EXCEEDED);
+        }
+        
+        // Validate movie exists and get duration
+        Movie movie = movieRepository.findById(request.getMovieId())
+            .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(movie.getIsDelete())) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        if (movie.getDurationMinutes() == null || movie.getDurationMinutes() <= 0) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        // Validate room exists
+        Room room = roomRepository.findById(request.getRoomId())
+            .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(room.getIsDelete())) {
+            throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
+        }
+        
+        // Get existing showtimes in the date range
+        List<Showtime> existingShowtimes = showtimeRepository.findByRoomAndDateRange(
+            request.getRoomId(),
+            request.getStartDate(),
+            request.getEndDate()
+        );
+        
+        List<ShowtimeResponse> createdShowtimes = new ArrayList<>();
+        List<BulkCreateShowtimeResponse.ConflictInfo> conflicts = new ArrayList<>();
+        List<TimeSlot> createdSlots = new ArrayList<>();
+        
+        // Loop through each date
+        LocalDate currentDate = request.getStartDate();
+        while (!currentDate.isAfter(request.getEndDate())) {
+            for (LocalTime timeSlot : request.getTimeSlots()) {
+                LocalDateTime startTime = LocalDateTime.of(currentDate, timeSlot);           // 2025-12-10 14:30:00
+                LocalDateTime endTime = startTime.plusMinutes(movie.getDurationMinutes());   // 2025-12-10 16:30:00
+                
+                // Check overlap with existing showtimes
+                boolean hasOverlap = existingShowtimes.stream()
+                    .anyMatch(s -> isOverlapping(s.getStartTime(), s.getEndTime(), startTime, endTime));
+
+                
+                // Check overlap with already created showtimes in this batch
+                boolean hasOverlapWithBatch = createdSlots.stream()
+                    .anyMatch(slot -> isOverlapping(slot.start, slot.end, startTime, endTime));
+                
+                if (hasOverlap || hasOverlapWithBatch) {
+                    conflicts.add(BulkCreateShowtimeResponse.ConflictInfo.builder()
+                        .date(currentDate)
+                        .time(timeSlot)
+                        .reason("Overlaps with another showtime in this batch")
+                        .build());
+                    continue;
+                }
+                
+                // Create showtime
+                Showtime showtime = Showtime.builder()
+                    .movieId(request.getMovieId())
+                    .roomId(request.getRoomId())
+                    .branchId(room.getBranchId())
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .basePrice(request.getPrice())
+                    .format(request.getFormat())
+                    .status(ShowtimeStatus.OPEN)
+                    .build();
+                
+                Showtime saved = showtimeRepository.save(showtime);
+                createdShowtimes.add(buildShowtimeResponse(saved));
+                createdSlots.add(new TimeSlot(startTime, endTime));
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        return BulkCreateShowtimeResponse.builder()
+            .totalRequested(totalShowtimes)
+            .created(createdShowtimes.size())
+            .skipped(conflicts.size())
+            .conflicts(conflicts)
+            .showtimes(createdShowtimes)
+            .build();
+    }
+    
+    private boolean isOverlapping(LocalDateTime start1, LocalDateTime end1, 
+                                   LocalDateTime start2, LocalDateTime end2) {
+        return start1.isBefore(end2) && end1.isAfter(start2);
+    }
+    
+    private static class TimeSlot {
+        LocalDateTime start;
+        LocalDateTime end;
+        
+        TimeSlot(LocalDateTime start, LocalDateTime end) {
+            this.start = start;
+            this.end = end;
+        }
     }
 }

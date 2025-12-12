@@ -1,7 +1,7 @@
 package com.example.CineBook.dto.showtime;
 
 import com.example.CineBook.common.constant.MovieFormat;
-import com.example.CineBook.common.constant.ShowtimeStatus;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,17 +16,24 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateShowtimeRequest {
+public class CreateShowtimeRequest {
     
+    @NotNull(message = "Movie ID is required")
     private UUID movieId;
+    
+    @NotNull(message = "Room ID is required")
     private UUID roomId;
+    
+    @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
+    
+    @NotNull(message = "End time is required")
     private LocalDateTime endTime;
     
+    @NotNull(message = "Price is required")
     @Positive(message = "Price must be greater than 0")
     private BigDecimal price;
     
+    @NotNull(message = "Format is required")
     private MovieFormat format;
-    
-    private ShowtimeStatus status;
 }

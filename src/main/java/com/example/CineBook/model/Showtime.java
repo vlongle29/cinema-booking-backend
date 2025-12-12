@@ -2,6 +2,7 @@ package com.example.CineBook.model;
 
 import com.example.CineBook.model.auditing.AuditingEntity;
 import com.example.CineBook.common.constant.ShowtimeStatus;
+import com.example.CineBook.common.constant.MovieFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,6 +36,10 @@ public class Showtime extends AuditingEntity {
     
     @Column(name = "base_price")
     private BigDecimal basePrice;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private MovieFormat format;
     
     @Enumerated(EnumType.STRING)
     @Column
