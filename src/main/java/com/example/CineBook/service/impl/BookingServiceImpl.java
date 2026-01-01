@@ -3,6 +3,7 @@ package com.example.CineBook.service.impl;
 import com.example.CineBook.common.constant.BookingStatus;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
+import com.example.CineBook.common.security.SecurityUtils;
 import com.example.CineBook.dto.booking.*;
 import com.example.CineBook.dto.bookingproduct.BookingProductBatchRequest;
 import com.example.CineBook.dto.bookingproduct.BookingProductItemRequest;
@@ -14,9 +15,12 @@ import com.example.CineBook.mapper.BookingMapper;
 import com.example.CineBook.mapper.BookingProductMapper;
 import com.example.CineBook.model.Booking;
 import com.example.CineBook.model.BookingProduct;
+import com.example.CineBook.model.Customer;
 import com.example.CineBook.model.Ticket;
 import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.BookingService;
+import com.example.CineBook.service.SeatHoldService;
+import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -26,6 +30,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,6 +46,8 @@ public class BookingServiceImpl implements BookingService {
     private final TicketRepository ticketRepository;
     private final BookingProductRepository bookingProductRepository;
     private final BookingProductMapper bookingProductMapper;
+    private final SeatWebSocketService seatWebSocketService;
+    private final SeatHoldService seatHoldService;
     
     private static final int BOOKING_EXPIRATION_MINUTES = 15;
 
@@ -97,12 +104,15 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(MessageCode.SHOWTIME_NOT_FOUND);
         }
 
-        if (request.getCustomerId() != null && !customerRepository.existsById(request.getCustomerId())) {
-            throw new BusinessException(MessageCode.USER_NOT_FOUND);
-        }
+        // Get userId from token
+        UUID userId = SecurityUtils.getCurrentUserId();
+        // Find or create customer from userId
+        UUID customerId = customerRepository.findByUserId(userId)
+                .map(Customer::getId)
+                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
 
         Booking booking = Booking.builder()
-                .customerId(request.getCustomerId())
+                .customerId(customerId)
                 .showtimeId(request.getShowtimeId())
                 .status(BookingStatus.DRAFT)
                 .bookingDate(LocalDateTime.now())
@@ -120,6 +130,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse addTicketsBatch(UUID bookingId, TicketBatchRequest request) {
+        // NOTE: Method này giờ chỉ dùng khi CHECKOUT (convert hold -> ticket)
+        // Không dùng để hold ghế nữa
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
 
@@ -133,10 +145,6 @@ public class BookingServiceImpl implements BookingService {
 
         List<Ticket> tickets = new ArrayList<>();
         for (TicketItemRequest item : request.getTickets()) {
-            if (ticketRepository.existsBySeatIdAndShowtimeId(item.getSeatId(), booking.getShowtimeId())) {
-                throw new BusinessException(MessageCode.SEAT_ALREADY_BOOKED);
-            }
-
             Ticket ticket = Ticket.builder()
                     .bookingId(bookingId)
                     .seatId(item.getSeatId())
@@ -146,12 +154,7 @@ public class BookingServiceImpl implements BookingService {
             tickets.add(ticket);
         }
 
-        try {
-            ticketRepository.saveAll(tickets);
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(MessageCode.SEAT_ALREADY_BOOKED);
-        }
-
+        ticketRepository.saveAll(tickets);
         return bookingMapper.toResponse(booking);
     }
 
@@ -279,6 +282,34 @@ public class BookingServiceImpl implements BookingService {
         booking.setExpiredAt(null);
 
         Booking saved = bookingRepository.save(booking);
+        
+        // Convert SeatHold (Redis) -> Ticket (DB)
+        List<com.example.CineBook.dto.seat.SeatHoldData> holds = 
+                ((SeatHoldServiceImpl) seatHoldService).getHoldsByBooking(bookingId);
+        List<Ticket> ticketsToBook = new ArrayList<>();
+        
+        for (var hold : holds) {
+            Ticket ticket = Ticket.builder()
+                    .bookingId(bookingId)
+                    .seatId(hold.getSeatId())
+                    .showtimeId(hold.getShowtimeId())
+                    .price(tickets.isEmpty() ? BigDecimal.ZERO : tickets.get(0).getPrice())
+                    .build();
+            ticketsToBook.add(ticket);
+        }
+        
+        ticketRepository.saveAll(ticketsToBook);
+        seatHoldService.releaseSeats(bookingId);
+        
+        // Broadcast SEAT_BOOKED
+        for (Ticket ticket : ticketsToBook) {
+            seatWebSocketService.notifySeatBooked(
+                ticket.getShowtimeId(),
+                ticket.getSeatId(),
+                bookingId
+            );
+        }
+
         return bookingMapper.toResponse(saved);
     }
 }

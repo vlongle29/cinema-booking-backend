@@ -24,12 +24,12 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    @PostMapping
-    @Operation(summary = "Tạo booking mới (Legacy - sẽ deprecated)")
-    public ResponseEntity<ApiResponse<BookingResponse>> createBooking(@Valid @RequestBody BookingCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo booking thành công", bookingService.createBooking(request)));
-    }
+//    @PostMapping
+//    @Operation(summary = "Tạo booking mới (Legacy - sẽ deprecated)")
+//    public ResponseEntity<ApiResponse<BookingResponse>> createBooking(@Valid @RequestBody BookingCreateRequest request) {
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(ApiResponse.success("Tạo booking thành công", bookingService.createBooking(request)));
+//    }
 
     @PostMapping("/draft")
     @Operation(summary = "Tạo draft booking (Bước 1: Chọn suất chiếu)")
