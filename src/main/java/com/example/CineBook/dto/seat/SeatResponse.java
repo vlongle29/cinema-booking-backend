@@ -1,6 +1,6 @@
 package com.example.CineBook.dto.seat;
 
-import com.example.CineBook.common.constant.SeatType;
+import com.example.CineBook.dto.seattype.SeatTypeResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +16,7 @@ public class SeatResponse {
     
     private UUID id;
     private String seatNumber;
-    private SeatType type;
+    private UUID seatTypeId;
+    private SeatTypeResponse seatType;
     private UUID roomId;
 }

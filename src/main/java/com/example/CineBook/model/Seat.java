@@ -2,7 +2,6 @@ package com.example.CineBook.model;
 
 import com.example.CineBook.model.auditing.AuditingEntity;
 import com.example.CineBook.common.constant.SeatStatus;
-import com.example.CineBook.common.constant.SeatType;
 import jakarta.persistence.*;
 import jakarta.persistence.metamodel.StaticMetamodel;
 import lombok.*;
@@ -38,9 +37,8 @@ public class Seat extends AuditingEntity {
     /**
      * Type seat (STANDARD, VIP, COUPLE). Decide on the basic price
      */
-    @Enumerated(EnumType.STRING)
-    @Column
-    private SeatType type;
+    @Column(name = "seat_type_id", nullable = false)
+    private UUID seatTypeId;
 
     /**
      * Physical state (AVAILABLE, BROKEN)

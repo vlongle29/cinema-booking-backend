@@ -8,14 +8,18 @@ import com.example.CineBook.dto.seat.SeatResponse;
 import com.example.CineBook.mapper.SeatMapper;
 import com.example.CineBook.model.Room;
 import com.example.CineBook.model.Seat;
+import com.example.CineBook.model.SeatType;
 import com.example.CineBook.repository.irepository.RoomRepository;
 import com.example.CineBook.repository.irepository.SeatRepository;
+import com.example.CineBook.repository.irepository.SeatTypeRepository;
 import com.example.CineBook.service.SeatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,6 +29,7 @@ public class SeatServiceImpl implements SeatService {
 
     private final SeatRepository seatRepository;
     private final RoomRepository roomRepository;
+    private final SeatTypeRepository seatTypeRepository;
     private final SeatMapper seatMapper;
 
     @Override
@@ -42,9 +47,14 @@ public class SeatServiceImpl implements SeatService {
         for (SeatRequest seatReq : request.getSeats()) {
             String rowChar = extractRowChar(seatReq.getSeatNumber());
             Integer seatNum = extractSeatNumber(seatReq.getSeatNumber());
-            
+
             if (seatRepository.existsByRoomIdAndRowCharAndSeatNumber(request.getRoomId(), rowChar, seatNum)) {
                 throw new BusinessException(MessageCode.SEAT_ALREADY_EXISTS);
+            }
+
+            // Validate seat type exists
+            if (!seatTypeRepository.existsById(seatReq.getSeatTypeId())) {
+                throw new BusinessException(MessageCode.SEAT_TYPE_NOT_FOUND);
             }
         }
 
@@ -59,8 +69,26 @@ public class SeatServiceImpl implements SeatService {
         room.setCapacity((int) seatRepository.countByRoomId(request.getRoomId()));
         roomRepository.save(room);
         
+        // Load seat types for response
+        List<UUID> seatTypeIds = saved.stream()
+                .map(Seat::getSeatTypeId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<SeatType> seatTypes = seatTypeRepository.findAllById(seatTypeIds);
+        Map<UUID, SeatType> seatTypeMap = new HashMap<>();
+        for (SeatType seatType : seatTypes) {
+            seatTypeMap.put(seatType.getId(), seatType);
+        }
+        
         return saved.stream()
-                .map(seatMapper::toResponse)
+                .map(seat -> {
+                    SeatType seatType = seatTypeMap.get(seat.getSeatTypeId());
+                    if (seatType == null) {
+                        throw new BusinessException(MessageCode.SEAT_TYPE_NOT_FOUND);
+                    }
+                    return seatMapper.toResponse(seat, seatType);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -70,8 +98,18 @@ public class SeatServiceImpl implements SeatService {
             throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
         }
 
-        return seatRepository.findByRoomId(roomId).stream()
-                .map(seatMapper::toResponse)
+        List<Seat> seats = seatRepository.findByRoomId(roomId);
+        
+        List<UUID> seatTypeIds = seats.stream()
+                .map(Seat::getSeatTypeId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<UUID, SeatType> seatTypeMap = seatTypeRepository.findAllById(seatTypeIds).stream()
+                .collect(Collectors.toMap(SeatType::getId, st -> st));
+        
+        return seats.stream()
+                .map(seat -> seatMapper.toResponse(seat, seatTypeMap.get(seat.getSeatTypeId())))
                 .collect(Collectors.toList());
     }
 

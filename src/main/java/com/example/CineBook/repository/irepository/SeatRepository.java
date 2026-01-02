@@ -10,4 +10,5 @@ public interface SeatRepository extends JpaRepository<Seat, UUID> {
     List<Seat> findByRoomId(UUID roomId);
     boolean existsByRoomIdAndRowCharAndSeatNumber(UUID roomId, String rowChar, Integer seatNumber);
     long countByRoomId(UUID roomId);
+    boolean existsBySeatTypeId(UUID seatTypeId);
 }

@@ -1,12 +1,13 @@
 package com.example.CineBook.dto.seat;
 
-import com.example.CineBook.common.constant.SeatType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -18,5 +19,5 @@ public class SeatRequest {
     private String seatNumber;
     
     @NotNull(message = "Loại ghế không được để trống")
-    private SeatType type;
+    private UUID seatTypeId;
 }
