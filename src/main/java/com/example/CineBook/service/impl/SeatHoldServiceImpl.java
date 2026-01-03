@@ -3,6 +3,7 @@ package com.example.CineBook.service.impl;
 import com.example.CineBook.common.constant.BookingStatus;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
+import com.example.CineBook.common.util.RedisLuaScripts;
 import com.example.CineBook.dto.seat.SeatHoldData;
 import com.example.CineBook.dto.seat.SeatHoldRequest;
 import com.example.CineBook.model.Booking;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -44,17 +46,12 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         UUID showtimeId = request.getShowtimeId();
 
         // Check if seat is already booked (Ticket exists in DB)
-        if (ticketRepository.findBySeatAndShowtimeWithLock(seatId, showtimeId).isPresent()) {
+        boolean booked = ticketRepository.existsBySeatIdAndShowtimeId(seatId, showtimeId);
+        if (booked) {
             throw new BusinessException(MessageCode.SEAT_ALREADY_BOOKED);
         }
 
         String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
-
-        // Check if already held by another booking
-        SeatHoldData existing = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
-        if (existing != null && !existing.getBookingId().equals(bookingId)) {
-            throw new BusinessException(MessageCode.SEAT_ALREADY_HELD);
-        }
 
         // Hold seat using Redis SETNX
         LocalDateTime now = LocalDateTime.now();
@@ -84,15 +81,35 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         log.info("Held seat {} for booking {}", seatId, bookingId);
     }
 
+    // Case SETNX + Java logic, (GET + DELETE)
+//    @Override
+//    public void releaseSeat(UUID bookingId, UUID showtimeId, UUID seatId) {
+//        String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
+//        SeatHoldData holdData = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+//
+//        // Only release if held by this booking
+//        if (holdData != null && holdData.getBookingId().equals(bookingId)) {
+//            redisTemplate.delete(holdKey);
+//
+//            String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
+//            redisTemplate.opsForSet().remove(bookingKey, holdKey);
+//
+//            seatWebSocketService.notifySeatReleased(showtimeId, seatId);
+//            log.info("Released seat {} for booking {}", seatId, bookingId);
+//        }
+//    }
+
     @Override
     public void releaseSeat(UUID bookingId, UUID showtimeId, UUID seatId) {
-        String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
-        SeatHoldData holdData = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+        String holdKey = String.format(SEAT_HOLD_KEY, seatId, showtimeId);
 
-        // Only release if held by this booking
-        if (holdData != null && holdData.getBookingId().equals(bookingId)) {
-            redisTemplate.delete(holdKey);
+        Long deleted = redisTemplate.execute(
+                RedisLuaScripts.RELEASE_SEAT_SCRIPT,
+                List.of(holdKey),
+                bookingId.toString()
+        );
 
+        if (deleted != null && deleted == 1) {
             String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
             redisTemplate.opsForSet().remove(bookingKey, holdKey);
 
@@ -114,21 +131,47 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         bookingRepository.save(booking);
 
         String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
-        Set<Object> holdKeys = redisTemplate.opsForSet().members(bookingKey);
 
-        if (holdKeys != null) {
-            for (Object holdKeyObj : holdKeys) {
+        // SNAPSHOT before LUA run
+        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
+        Map<String, SeatHoldData> cachedSeats = new HashMap<>();
+        if (holdKeysSnapshot != null) {
+            for (Object holdKeyObj : holdKeysSnapshot) {
                 String holdKey = (String) holdKeyObj;
-                SeatHoldData holdData = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
-
-                if (holdData != null) {
-                    redisTemplate.delete(holdKey);
-                    seatWebSocketService.notifySeatReleased(holdData.getShowtimeId(), holdData.getSeatId());
+                SeatHoldData data = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+                if (data != null) {
+                    cachedSeats.put(holdKey, data);
                 }
             }
-            redisTemplate.delete(bookingKey);
         }
-        log.info("Released {} seats for booking {}", holdKeys.size(), bookingId);
+
+//        if (holdKeys != null) {
+//            for (Object holdKeyObj : holdKeys) {
+//                String holdKey = (String) holdKeyObj;
+//                SeatHoldData holdData = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+//
+//                if (holdData != null) {
+//                    redisTemplate.delete(holdKey);
+//                    seatWebSocketService.notifySeatReleased(holdData.getShowtimeId(), holdData.getSeatId());
+//                }
+//            }
+//            redisTemplate.delete(bookingKey);
+//        }
+        Long released = redisTemplate.execute(
+                RedisLuaScripts.RELEASE_BOOKING_SCRIPT,
+                List.of(bookingKey),
+                bookingId.toString()
+        );
+
+        if (released != null && released > 0) {
+            for (SeatHoldData seat : cachedSeats.values()) {
+                seatWebSocketService.notifySeatReleased(
+                        seat.getShowtimeId(),
+                        seat.getSeatId()
+                );
+            }
+        }
+        log.info("Released {} seats for booking {}", released, bookingId);  // released is number of seat
     }
 
     public List<SeatHoldData> getHoldsByBooking(UUID bookingId) {
