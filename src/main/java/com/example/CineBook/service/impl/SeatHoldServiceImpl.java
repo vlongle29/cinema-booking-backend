@@ -1,4 +1,7 @@
 package com.example.CineBook.service.impl;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.example.CineBook.common.constant.BookingStatus;
 import com.example.CineBook.common.exception.BusinessException;
@@ -14,6 +17,9 @@ import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +27,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static com.example.CineBook.common.util.RedisLuaScripts.DEBUG_SEAT_SCRIPT;
 
 @Slf4j
 @Service
@@ -31,6 +39,7 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     private final TicketRepository ticketRepository;
     private final BookingRepository bookingRepository;
     private final SeatWebSocketService seatWebSocketService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final int HOLD_EXPIRATION_MINUTES = 15;
     private static final String SEAT_HOLD_KEY = "seat:hold:%s:%s"; // showtime:seat
@@ -73,6 +82,8 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         // Track seat in booking's hold set
         String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
         redisTemplate.opsForSet().add(bookingKey, holdKey);
+        log.info("Added holdKey {} to bookingKey {}", holdKey, bookingKey);
+        log.info("Current holds for booking {}: {}", bookingId, redisTemplate.opsForSet().members(bookingKey));
         redisTemplate.expire(bookingKey, HOLD_EXPIRATION_MINUTES, TimeUnit.MINUTES);
 
         // Broadcast to all clients
@@ -101,13 +112,35 @@ public class SeatHoldServiceImpl implements SeatHoldService {
 
     @Override
     public void releaseSeat(UUID bookingId, UUID showtimeId, UUID seatId) {
-        String holdKey = String.format(SEAT_HOLD_KEY, seatId, showtimeId);
+        String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
+
+        String debugInfo = stringRedisTemplate.execute(
+                DEBUG_SEAT_SCRIPT, // Vẫn dùng script debug tôi đưa ở trên
+                List.of(holdKey),
+                bookingId.toString()
+        );
+
+        log.error("RESULT: {}", debugInfo);
 
         Long deleted = redisTemplate.execute(
                 RedisLuaScripts.RELEASE_SEAT_SCRIPT,
                 List.of(holdKey),
                 bookingId.toString()
         );
+
+        log.info("Lua script returned: {} for seat {} booking {}", deleted, seatId, bookingId);
+
+        if (deleted != null && deleted == -1) {
+            log.error("Key not found in Redis: {}", holdKey);
+        } else if (deleted != null && deleted == -2) {
+            log.error("Failed to decode JSON from Redis");
+        } else if (deleted != null && deleted == -3) {
+            log.error("bookingId field not found in decoded data");
+        } else if (deleted != null && deleted == 0) {
+            log.warn("bookingId mismatch. Expected: {}", bookingId);
+            SeatHoldData holdData = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+            log.warn("Stored bookingId: {}", holdData != null ? holdData.getBookingId() : null);
+        }
 
         if (deleted != null && deleted == 1) {
             String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
@@ -118,32 +151,32 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         }
     }
 
-    @Override
-    public void releaseSeats(UUID bookingId) {
-        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
-        // Idempotency guard
-        if (booking.getStatus() != BookingStatus.DRAFT) {
-            return;
-        }
-
-        // Update DB first
-        booking.setStatus(BookingStatus.EXPIRED);
-        bookingRepository.save(booking);
-
-        String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
-
-        // SNAPSHOT before LUA run
-        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
-        Map<String, SeatHoldData> cachedSeats = new HashMap<>();
-        if (holdKeysSnapshot != null) {
-            for (Object holdKeyObj : holdKeysSnapshot) {
-                String holdKey = (String) holdKeyObj;
-                SeatHoldData data = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
-                if (data != null) {
-                    cachedSeats.put(holdKey, data);
-                }
-            }
-        }
+//    @Override
+//    public void releaseSeats(UUID bookingId) {
+//        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+//        // Idempotency guard
+//        if (booking.getStatus() != BookingStatus.DRAFT) {
+//            return;
+//        }
+//
+//        // Update DB first
+//        booking.setStatus(BookingStatus.EXPIRED);
+//        bookingRepository.save(booking);
+//
+//        String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
+//
+//        // SNAPSHOT before LUA run
+//        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
+//        Map<String, SeatHoldData> cachedSeats = new HashMap<>();
+//        if (holdKeysSnapshot != null) {
+//            for (Object holdKeyObj : holdKeysSnapshot) {
+//                String holdKey = (String) holdKeyObj;
+//                SeatHoldData data = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+//                if (data != null) {
+//                    cachedSeats.put(holdKey, data);
+//                }
+//            }
+//        }
 
 //        if (holdKeys != null) {
 //            for (Object holdKeyObj : holdKeys) {
@@ -157,21 +190,80 @@ public class SeatHoldServiceImpl implements SeatHoldService {
 //            }
 //            redisTemplate.delete(bookingKey);
 //        }
+//        Long released = redisTemplate.execute(
+//                RedisLuaScripts.RELEASE_BOOKING_SCRIPT,
+//                List.of(bookingKey),
+//                bookingId.toString()
+//        );
+//
+//        if (released != null && released > 0) {
+//            for (SeatHoldData seat : cachedSeats.values()) {
+//                seatWebSocketService.notifySeatReleased(
+//                        seat.getShowtimeId(),
+//                        seat.getSeatId()
+//                );
+//            }
+//        }
+//        log.info("Released {} seats for booking {}", released, bookingId);  // released is number of seat
+//    }
+
+    @Override
+    public void releaseSeats(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+
+        // Idempotency guard
+//        if (booking.getStatus() != BookingStatus.DRAFT) {
+//            return;
+//        }
+
+        // Update DB first
+        booking.setStatus(BookingStatus.EXPIRED);
+        bookingRepository.save(booking);
+
+        String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
+        log.info("Releasing seats for booking key: {}", bookingKey);
+
+        // SNAPSHOT before LUA run (Logic này của bạn OK để phục vụ WebSocket notify)
+        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
+        log.info("Snapshot hold keys: {}", holdKeysSnapshot);
+
+        Map<String, SeatHoldData> cachedSeats = new HashMap<>();
+
+        if (holdKeysSnapshot != null) {
+            for (Object holdKeyObj : holdKeysSnapshot) {
+                log.info("Processing hold key: {}", holdKeyObj);
+                String holdKey = (String) holdKeyObj;
+                // Lưu ý: Dùng try-catch chỗ này nếu sợ redis lỗi null/format, nhưng cơ bản là ổn
+                SeatHoldData data = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
+                if (data != null) {
+                    cachedSeats.put(holdKey, data);
+                }
+            }
+        }
+
+        // GỌI SCRIPT ĐÃ FIX
+        // inputBookingId sẽ được Lua "tẩy rửa" sạch sẽ nên không sợ dấu " hay khoảng trắng nữa
         Long released = redisTemplate.execute(
                 RedisLuaScripts.RELEASE_BOOKING_SCRIPT,
                 List.of(bookingKey),
                 bookingId.toString()
         );
 
+        log.info("Lua script release result: {}", released);
+
         if (released != null && released > 0) {
+            // Chỉ notify những ghế thực sự release thành công (hoặc notify tất cả trong snapshot cũng được)
             for (SeatHoldData seat : cachedSeats.values()) {
-                seatWebSocketService.notifySeatReleased(
-                        seat.getShowtimeId(),
-                        seat.getSeatId()
-                );
+                if (seat != null) {
+                    seatWebSocketService.notifySeatReleased(
+                            seat.getShowtimeId(),
+                            seat.getSeatId()
+                    );
+                }
             }
         }
-        log.info("Released {} seats for booking {}", released, bookingId);  // released is number of seat
+        log.info("Released {} seats for booking {}", released, bookingId);
     }
 
     public List<SeatHoldData> getHoldsByBooking(UUID bookingId) {
