@@ -14,7 +14,6 @@ import org.mapstruct.*;
 )
 public interface ShowtimeMapper {
     
-    @Mapping(target = "branchId", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "basePrice", source = "price")
     Showtime toEntity(CreateShowtimeRequest request);

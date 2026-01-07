@@ -27,6 +27,7 @@ public enum MessageCode {
     ROOM_NOT_FOUND,
     ROOM_HAS_SEAT,
     ROOM_ALREADY_EXISTS,
+    ROOM_NOT_BELONG_TO_BRANCH,
     SEAT_ALREADY_EXISTS,
 
 
@@ -170,7 +171,20 @@ public enum MessageCode {
     // City
     CITY_NOT_FOUND,
     CITY_NAME_ALREADY_EXISTS,
-    CITY_IN_USE;
+    CITY_IN_USE,
+    
+    // Promotion
+    PROMOTION_NOT_FOUND,
+    PROMOTION_CODE_ALREADY_EXISTS,
+    PROMOTION_EXPIRED,
+    PROMOTION_NOT_ACTIVE,
+    PROMOTION_MIN_ORDER_NOT_MET,
+    
+    // Transaction
+    TRANSACTION_NOT_FOUND,
+    BOOKING_ALREADY_PAID,
+    PAYMENT_FAILED,
+    BOOKING_NOT_PENDING_PAYMENT;
 
     private final String message;
 

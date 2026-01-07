@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -17,17 +18,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateShowtimeRequest {
-    
+
     @NotNull(message = "Movie ID is required")
     private UUID movieId;
+    
+    @NotNull(message = "Branch ID is required")
+    private UUID branchId;
     
     @NotNull(message = "Room ID is required")
     private UUID roomId;
     
     @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
-    
-    @NotNull(message = "End time is required")
+
     private LocalDateTime endTime;
     
     @NotNull(message = "Price is required")

@@ -4,6 +4,7 @@ import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.dto.branch.BranchRequest;
 import com.example.CineBook.dto.branch.BranchResponse;
 import com.example.CineBook.dto.branch.BranchSearchDTO;
+import com.example.CineBook.dto.branch.BranchUpdateRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import java.util.UUID;
 public interface BranchService {
     BranchResponse createBranch(BranchRequest request);
     BranchResponse getBranchById(UUID id);
-    BranchResponse updateBranch(UUID id, BranchRequest request);
+    BranchResponse updateBranch(UUID id, BranchUpdateRequest request);
     void deleteBranch(UUID id);
     void deleteBranchCascade(UUID id);
     PageResponse<BranchResponse> searchBranches(BranchSearchDTO searchDTO);

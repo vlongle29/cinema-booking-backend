@@ -7,16 +7,11 @@ import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.dto.branch.BranchRequest;
 import com.example.CineBook.dto.branch.BranchResponse;
 import com.example.CineBook.dto.branch.BranchSearchDTO;
+import com.example.CineBook.dto.branch.BranchUpdateRequest;
 import com.example.CineBook.dto.sysRole.SysRoleResponse;
 import com.example.CineBook.mapper.BranchMapper;
-import com.example.CineBook.model.Branch;
-import com.example.CineBook.model.Room;
-import com.example.CineBook.model.Seat;
-import com.example.CineBook.model.SysRole;
-import com.example.CineBook.repository.irepository.BranchRepository;
-import com.example.CineBook.repository.irepository.RoomRepository;
-import com.example.CineBook.repository.irepository.SeatRepository;
-import com.example.CineBook.repository.irepository.SysRoleRepository;
+import com.example.CineBook.model.*;
+import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.BranchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +33,7 @@ public class BranchServiceImpl implements BranchService {
     private final RoomRepository roomRepository;
     private final SeatRepository seatRepository;
     private final SysRoleRepository sysRoleRepository;
+    private final CityRepository cityRepository;
 
     @Override
     @Transactional
@@ -60,9 +56,12 @@ public class BranchServiceImpl implements BranchService {
 
     @Override
     @Transactional
-    public BranchResponse updateBranch(UUID id, BranchRequest request) {
+    public BranchResponse updateBranch(UUID id, BranchUpdateRequest request) {
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MessageCode.BRANCH_NOT_FOUND));
+
+        cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new BusinessException(MessageCode.CITY_NOT_FOUND));
 
         if (request.getManagerId() != null) {
             List<SysRoleResponse> roles = sysRoleRepository.getRoleInfoByUserId(request.getManagerId());

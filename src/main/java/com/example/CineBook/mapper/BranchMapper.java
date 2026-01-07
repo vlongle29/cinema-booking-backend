@@ -2,6 +2,7 @@ package com.example.CineBook.mapper;
 
 import com.example.CineBook.dto.branch.BranchRequest;
 import com.example.CineBook.dto.branch.BranchResponse;
+import com.example.CineBook.dto.branch.BranchUpdateRequest;
 import com.example.CineBook.model.Branch;
 import org.mapstruct.*;
 
@@ -20,5 +21,5 @@ public interface BranchMapper extends BaseMapper<BranchRequest, Branch> {
     
     Branch toEntity(BranchRequest request);
     
-    void updateEntity(BranchRequest request, @MappingTarget Branch branch);
+    void updateEntity(BranchUpdateRequest request, @MappingTarget Branch branch);
 }

@@ -5,6 +5,7 @@ import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.dto.branch.BranchRequest;
 import com.example.CineBook.dto.branch.BranchResponse;
 import com.example.CineBook.dto.branch.BranchSearchDTO;
+import com.example.CineBook.dto.branch.BranchUpdateRequest;
 import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.service.BranchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +47,7 @@ public class BranchController {
     @Operation(summary = "Cập nhật thông tin chi nhánh")
     public ResponseEntity<ApiResponse<BranchResponse>> updateBranch(
             @PathVariable UUID id,
-            @Valid @RequestBody BranchRequest request) {
+            @Valid @RequestBody BranchUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(branchService.updateBranch(id, request)));
     }
 

@@ -13,13 +13,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BranchRequest {
-    
-    @NotBlank(message = "Tên chi nhánh không được để trống")
+
     private String name;
     
     private String address;
     
-    private String city;
+    private UUID cityId;
     
     private UUID managerId;
 }

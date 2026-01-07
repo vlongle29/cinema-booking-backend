@@ -45,12 +45,6 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional
     public ShowtimeResponse createShowtime(CreateShowtimeRequest request) {
-        // Validate time range
-        if (request.getEndTime().isBefore(request.getStartTime()) || 
-            request.getEndTime().isEqual(request.getStartTime())) {
-            throw new BusinessException(MessageCode.SHOWTIME_INVALID_TIME_RANGE);
-        }
-        
         // Validate movie exists
         Movie movie = movieRepository.findById(request.getMovieId())
             .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
@@ -59,7 +53,15 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
         }
         
-        // Validate room exists
+        // Validate branch exists
+        Branch branch = branchRepository.findById(request.getBranchId())
+            .orElseThrow(() -> new BusinessException(MessageCode.BRANCH_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(branch.getIsDelete())) {
+            throw new BusinessException(MessageCode.BRANCH_NOT_FOUND);
+        }
+        
+        // Validate room exists and belongs to the branch
         Room room = roomRepository.findById(request.getRoomId())
             .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
         
@@ -67,11 +69,19 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
         }
         
+        if (!room.getBranchId().equals(request.getBranchId())) {
+            throw new BusinessException(MessageCode.ROOM_NOT_BELONG_TO_BRANCH);
+        }
+        
+        // Calculate end time
+        int cleaningBuffer = 15; // minutes
+        LocalDateTime calculatedEndTime = request.getStartTime().plusMinutes(movie.getDurationMinutes()).plusMinutes(cleaningBuffer);
+        
         // Check for overlapping showtimes
         List<Showtime> overlapping = showtimeRepository.findOverlappingShowtimes(
             request.getRoomId(),
             request.getStartTime(),
-            request.getEndTime()
+            calculatedEndTime
         );
         
         if (!overlapping.isEmpty()) {
@@ -80,8 +90,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         
         // Create showtime
         Showtime showtime = showtimeMapper.toEntity(request);
-        showtime.setBranchId(room.getBranchId());
         showtime.setStatus(ShowtimeStatus.OPEN);
+        showtime.setEndTime(calculatedEndTime);
         
         Showtime saved = showtimeRepository.save(showtime);
         return buildShowtimeResponse(saved);
