@@ -1,5 +1,6 @@
 package com.example.CineBook.dto.movie;
 
+import com.example.CineBook.common.constant.MovieStatus;
 import com.example.CineBook.common.dto.request.SearchBaseDto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

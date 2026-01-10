@@ -71,4 +71,21 @@ public class MovieController {
         )).toList();
         return ResponseEntity.ok(ApiResponse.success(ratings));
     }
+
+    @GetMapping("/now-showing")
+    @Operation(summary = "Lấy phim đang chiếu")
+    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getNowShowing(
+            @ModelAttribute MovieSearchDTO searchDTO) {
+        searchDTO.setStatus("SHOWING");
+        return ResponseEntity.ok(ApiResponse.success(movieService.searchMovies(searchDTO)));
+    }
+
+    @GetMapping("/coming-soon")
+    @Operation(summary = "Lấy phim sắp chiếu")
+    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getComingSoon(
+            @ModelAttribute MovieSearchDTO searchDTO) {
+        searchDTO.setStatus("COMING_SOON");
+        return ResponseEntity.ok(ApiResponse.success(movieService.searchMovies(searchDTO)));
+    }
+
 }
