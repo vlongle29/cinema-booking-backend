@@ -56,4 +56,10 @@ public class Booking extends AuditingEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;
+    
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+    
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
 }

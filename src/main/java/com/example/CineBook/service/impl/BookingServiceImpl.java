@@ -240,10 +240,12 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
 
+        // Validate booking status
         if (booking.getStatus() != BookingStatus.DRAFT) {
             throw new BusinessException(MessageCode.BOOKING_NOT_DRAFT);
         }
 
+        //
         if (booking.getExpiredAt().isBefore(LocalDateTime.now())) {
             throw new BusinessException(MessageCode.BOOKING_EXPIRED);
         }
@@ -310,6 +312,54 @@ public class BookingServiceImpl implements BookingService {
             );
         }
 
+        return bookingMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse cancelBooking(UUID bookingId, String reason) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+
+        // Check if booking can be cancelled
+        if (booking.getStatus() == BookingStatus.CANCELLED || 
+            booking.getStatus() == BookingStatus.REFUNDED) {
+            throw new BusinessException(MessageCode.BOOKING_ALREADY_CANCELLED);
+        }
+
+        // Get showtime to check if it has started
+        var showtime = showtimeRepository.findById(booking.getShowtimeId())
+                .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
+
+        // Cannot cancel if showtime has already started
+        if (showtime.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(MessageCode.SHOWTIME_ALREADY_STARTED);
+        }
+
+        // Release all held seats
+        seatHoldService.releaseSeats(bookingId);
+
+        // Get all tickets and notify via WebSocket
+        List<Ticket> tickets = ticketRepository.findByBookingId(bookingId);
+        for (Ticket ticket : tickets) {
+            seatWebSocketService.notifySeatReleased(
+                ticket.getShowtimeId(),
+                ticket.getSeatId()
+            );
+        }
+
+        // Update booking status
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason(reason);
+        booking.setCancelledAt(LocalDateTime.now());
+
+        // TODO: Process refund if payment was made
+        // if (booking.getStatus() == BookingStatus.CONFIRMED || 
+        //     booking.getStatus() == BookingStatus.PAID) {
+        //     processRefund(booking);
+        // }
+
+        Booking saved = bookingRepository.save(booking);
         return bookingMapper.toResponse(saved);
     }
 }

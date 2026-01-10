@@ -86,4 +86,13 @@ public class BookingController {
         bookingService.deleteBooking(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa booking thành công", null));
     }
+
+    @PostMapping("/{bookingId}/cancel")
+    @Operation(summary = "Hủy booking", description = "User hủy booking trước khi suất chiếu bắt đầu")
+    public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
+            @PathVariable UUID bookingId,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(ApiResponse.success("Hủy booking thành công", 
+            bookingService.cancelBooking(bookingId, reason)));
+    }
 }

@@ -17,4 +17,5 @@ public interface BookingService {
     BookingResponse getBookingById(UUID id);
     List<BookingResponse> getBookingsByUserId(UUID userId);
     void deleteBooking(UUID id);
+    BookingResponse cancelBooking(UUID bookingId, String reason);
 }
