@@ -127,35 +127,15 @@ public class BookingServiceImpl implements BookingService {
         return bookingMapper.toResponse(saved);
     }
 
+    /**
+     * @deprecated Use holdSeats() + checkout() flow instead.
+     * This method bypasses Redis hold mechanism and should not be used.
+     */
+    @Deprecated
     @Override
     @Transactional
     public BookingResponse addTicketsBatch(UUID bookingId, TicketBatchRequest request) {
-        // NOTE: Method này giờ chỉ dùng khi CHECKOUT (convert hold -> ticket)
-        // Không dùng để hold ghế nữa
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
-
-        if (booking.getStatus() != BookingStatus.DRAFT) {
-            throw new BusinessException(MessageCode.BOOKING_NOT_DRAFT);
-        }
-
-        if (booking.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(MessageCode.BOOKING_EXPIRED);
-        }
-
-        List<Ticket> tickets = new ArrayList<>();
-        for (TicketItemRequest item : request.getTickets()) {
-            Ticket ticket = Ticket.builder()
-                    .bookingId(bookingId)
-                    .seatId(item.getSeatId())
-                    .showtimeId(booking.getShowtimeId())
-                    .price(item.getPrice())
-                    .build();
-            tickets.add(ticket);
-        }
-
-        ticketRepository.saveAll(tickets);
-        return bookingMapper.toResponse(booking);
+        throw new BusinessException(MessageCode.BAD_REQUEST);
     }
 
     @Override
