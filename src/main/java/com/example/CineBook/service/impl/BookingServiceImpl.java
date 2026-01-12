@@ -8,6 +8,7 @@ import com.example.CineBook.dto.booking.*;
 import com.example.CineBook.dto.bookingproduct.BookingProductBatchRequest;
 import com.example.CineBook.dto.bookingproduct.BookingProductItemRequest;
 import com.example.CineBook.dto.bookingproduct.BookingProductResponse;
+import com.example.CineBook.dto.seat.SeatHoldData;
 import com.example.CineBook.dto.ticket.TicketBatchRequest;
 import com.example.CineBook.dto.ticket.TicketItemRequest;
 import com.example.CineBook.dto.ticket.TicketResponse;
@@ -220,22 +221,37 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
 
-        // Validate booking status
         if (booking.getStatus() != BookingStatus.DRAFT) {
             throw new BusinessException(MessageCode.BOOKING_NOT_DRAFT);
         }
 
-        //
         if (booking.getExpiredAt().isBefore(LocalDateTime.now())) {
             throw new BusinessException(MessageCode.BOOKING_EXPIRED);
         }
 
-        List<Ticket> tickets = ticketRepository.findByBookingId(bookingId);
-        if (tickets.isEmpty()) {
+        // Check holds from Redis
+        List<SeatHoldData> holds = ((SeatHoldServiceImpl) seatHoldService).getHoldsByBooking(bookingId);
+        if (holds.isEmpty()) {
             throw new BusinessException(MessageCode.BOOKING_NO_TICKETS);
         }
 
-        BigDecimal totalTicketPrice = tickets.stream()
+        // Convert holds to tickets
+        List<Ticket> ticketsToBook = new ArrayList<>();
+        for (var hold : holds) {
+            // TODO: Get actual price from Seat -> SeatType
+            Ticket ticket = Ticket.builder()
+                    .bookingId(bookingId)
+                    .seatId(hold.getSeatId())
+                    .showtimeId(hold.getShowtimeId())
+                    .price(BigDecimal.valueOf(50000)) // Temporary fixed price
+                    .build();
+            ticketsToBook.add(ticket);
+        }
+        
+        ticketRepository.saveAll(ticketsToBook);
+
+        // Calculate prices
+        BigDecimal totalTicketPrice = ticketsToBook.stream()
                 .map(Ticket::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -247,11 +263,8 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal subtotal = totalTicketPrice.add(totalFoodPrice);
         BigDecimal discountAmount = BigDecimal.ZERO;
         
-        // TODO: Apply promotion logic here when promotion module is ready
-        // if (request.getPromotionId() != null) {
-        //     discountAmount = calculateDiscount(request.getPromotionId(), subtotal);
-        // }
-
+        // TODO: Apply promotion logic
+        
         BigDecimal finalAmount = subtotal.subtract(discountAmount);
 
         booking.setTotalTicketPrice(totalTicketPrice);
@@ -265,22 +278,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
         
-        // Convert SeatHold (Redis) -> Ticket (DB)
-        List<com.example.CineBook.dto.seat.SeatHoldData> holds = 
-                ((SeatHoldServiceImpl) seatHoldService).getHoldsByBooking(bookingId);
-        List<Ticket> ticketsToBook = new ArrayList<>();
-        
-        for (var hold : holds) {
-            Ticket ticket = Ticket.builder()
-                    .bookingId(bookingId)
-                    .seatId(hold.getSeatId())
-                    .showtimeId(hold.getShowtimeId())
-                    .price(tickets.isEmpty() ? BigDecimal.ZERO : tickets.get(0).getPrice())
-                    .build();
-            ticketsToBook.add(ticket);
-        }
-        
-        ticketRepository.saveAll(ticketsToBook);
+        // Release holds from Redis
         seatHoldService.releaseSeats(bookingId);
         
         // Broadcast SEAT_BOOKED
