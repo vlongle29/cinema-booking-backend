@@ -2,12 +2,14 @@ package com.example.CineBook.common.exception;
 
 import com.example.CineBook.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -173,6 +176,13 @@ public class GlobalExceptionHandler {
             }
         }
         return adaptResponseForCurrentContentType(ApiResponse.fail(messageKey, null, errors), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, DateTimeParseException.class, InvalidFormatException.class})
+    public ResponseEntity<?> handleDateTimeParseException(Exception ex, HttpServletRequest request) {
+        log.warn("Invalid date/time format for request {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.fail("Invalid date/time format. Please use correct format (e.g., 2026-01-08T14:30:00)", "INVALID_FORMAT", null);
+        return adaptResponseForCurrentContentType(response, HttpStatus.BAD_REQUEST, request);
     }
 
     @ExceptionHandler(Exception.class)
