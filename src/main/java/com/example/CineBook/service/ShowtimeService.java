@@ -21,6 +21,9 @@ public interface ShowtimeService {
     List<MovieFormat> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId);
     List<ShowtimeGroupedByBranchResponse> getShowtimesGroupedByBranch(UUID movieId, LocalDate date, UUID cityId, MovieFormat format);
     
+    // Seat availability
+    ShowtimeSeatStatusResponse getSeatStatusByShowtime(UUID showtimeId);
+    
     // Bulk create
     RoomShowtimeResponse getShowtimesByRoom(UUID roomId, LocalDate startDate, LocalDate endDate);
     BulkCreateShowtimeResponse bulkCreateShowtimes(BulkCreateShowtimeRequest request);

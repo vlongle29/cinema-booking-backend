@@ -100,6 +100,15 @@ public class ShowtimeController {
             showtimeService.getShowtimesGroupedByBranch(movieId, date, cityId, format)));
     }
     
+    @GetMapping("/{showtimeId}/seats")
+    @Operation(summary = "Lấy trạng thái ghế theo suất chiếu", 
+               description = "Hiển thị tất cả ghế với trạng thái: AVAILABLE, BOOKED, HELD")
+    public ResponseEntity<ApiResponse<ShowtimeSeatStatusResponse>> getSeatStatusByShowtime(
+            @PathVariable UUID showtimeId) {
+        return ResponseEntity.ok(ApiResponse.success(
+            showtimeService.getSeatStatusByShowtime(showtimeId)));
+    }
+    
     @GetMapping("/by-room")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Lấy danh sách suất chiếu theo phòng và khoảng ngày")

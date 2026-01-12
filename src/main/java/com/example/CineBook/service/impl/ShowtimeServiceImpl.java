@@ -7,6 +7,7 @@ import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.dto.city.CityResponse;
+import com.example.CineBook.dto.seat.SeatHoldData;
 import com.example.CineBook.dto.showtime.*;
 import com.example.CineBook.mapper.BranchMapper;
 import com.example.CineBook.mapper.MovieMapper;
@@ -16,6 +17,7 @@ import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ShowtimeServiceImpl implements ShowtimeService {
@@ -37,10 +40,13 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final RoomRepository roomRepository;
     private final BranchRepository branchRepository;
     private final CityRepository cityRepository;
+    private final TicketRepository ticketRepository;
+    private final SeatRepository seatRepository;
     private final ShowtimeMapper showtimeMapper;
     private final MovieMapper movieMapper;
     private final RoomMapper roomMapper;
     private final BranchMapper branchMapper;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
     
     @Override
     @Transactional
@@ -488,6 +494,103 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private boolean isOverlapping(LocalDateTime start1, LocalDateTime end1, 
                                    LocalDateTime start2, LocalDateTime end2) {
         return start1.isBefore(end2) && end1.isAfter(start2);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public ShowtimeSeatStatusResponse getSeatStatusByShowtime(UUID showtimeId) {
+        // Validate showtime exists
+        Showtime showtime = showtimeRepository.findById(showtimeId)
+            .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(showtime.getIsDelete())) {
+            throw new BusinessException(MessageCode.SHOWTIME_NOT_FOUND);
+        }
+        
+        // Get room info
+        Room room = roomRepository.findById(showtime.getRoomId())
+            .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
+        log.info("Getting seat status for showtime {} in room {}", showtimeId, room.getId());
+
+
+        // Get all seats in room
+        List<Seat> seats = seatRepository.findByRoomId(room.getId());
+        log.info("Total seats in room {}: {}", room.getId(), seats.size());
+        
+        // Get booked seats (tickets in DB)
+        List<Ticket> bookedTickets = ticketRepository.findByShowtimeId(showtimeId);
+        log.info("Total booked tickets for showtime {}: {}", showtimeId, bookedTickets.size());
+        Set<UUID> bookedSeatIds = bookedTickets.stream()
+            .map(Ticket::getSeatId)
+            .collect(Collectors.toSet());
+        log.info("Total booked seat IDs for showtime {}: {}", showtimeId, bookedSeatIds.size());
+        
+        // Get held seats from Redis
+        Map<UUID, UUID> heldSeats = new HashMap<>(); // seatId -> bookingId
+        for (Seat seat : seats) {
+            try {
+                String holdKey = String.format("seat:hold:%s:%s", showtimeId, seat.getId());
+                Object rawData = redisTemplate.opsForValue().get(holdKey);
+                if (rawData instanceof SeatHoldData) {
+                    SeatHoldData holdData = (SeatHoldData) rawData;
+                    heldSeats.put(seat.getId(), holdData.getBookingId());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get hold data for seat {}: {}", seat.getId(), e.getMessage());
+            }
+        }
+        
+        // Build seat status list
+        List<ShowtimeSeatStatusResponse.SeatStatus> seatStatuses = seats.stream()
+            .map(seat -> {
+                String status;
+                UUID heldByBookingId = null;
+                
+                if (bookedSeatIds.contains(seat.getId())) {
+                    status = "BOOKED";
+                } else if (heldSeats.containsKey(seat.getId())) {
+                    status = "HELD";
+                    heldByBookingId = heldSeats.get(seat.getId());
+                } else {
+                    status = "AVAILABLE";
+                }
+
+                String seatType = null;
+                try {
+                    seatType = seatRepository.getSeatTypeNameById(seat.getId());
+                } catch (Exception e) {
+                    log.error("Error getting seat type for seat {}: {}", seat.getId(), e.getMessage());
+                    seatType = "STANDARD";
+                }
+                
+                return ShowtimeSeatStatusResponse.SeatStatus.builder()
+                    .seatId(seat.getId())
+                    .seatNumber(seat.getSeatNumber())
+                    .rowChar(seat.getRowChar())
+                    .seatType(seatType)
+                    .price(showtime.getBasePrice())
+                    .status(status)
+                    .heldByBookingId(heldByBookingId)
+                    .build();
+            })
+            .collect(Collectors.toList());
+        
+        // Calculate statistics
+        int totalSeats = seats.size();
+        int bookedSeats = bookedSeatIds.size();
+        int heldSeatsCount = heldSeats.size();
+        int availableSeats = totalSeats - bookedSeats - heldSeatsCount;
+        
+        return ShowtimeSeatStatusResponse.builder()
+            .showtimeId(showtimeId)
+            .roomId(room.getId())
+            .roomName(room.getName())
+            .totalSeats(totalSeats)
+            .availableSeats(availableSeats)
+            .bookedSeats(bookedSeats)
+            .heldSeats(heldSeatsCount)
+            .seats(seatStatuses)
+            .build();
     }
     
     private static class TimeSlot {
