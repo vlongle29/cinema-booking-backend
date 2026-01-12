@@ -32,7 +32,7 @@ public class SeatController {
 
     @GetMapping("/room/{roomId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
-    @Operation(summary = "Lấy danh sách ghế theo phòng")
+    @Operation(summary = "Lấy danh sách ghế theo phòng (Dùng cho admin quản lý phòng, không có thông tin trọng thái theo suất)")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> getSeatsByRoom(@PathVariable UUID roomId) {
         return ResponseEntity.ok(ApiResponse.success(seatService.getSeatsByRoom(roomId)));
     }
