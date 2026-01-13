@@ -1,6 +1,7 @@
 package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.constant.BookingStatus;
+import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.security.SecurityUtils;
@@ -14,16 +15,14 @@ import com.example.CineBook.dto.ticket.TicketItemRequest;
 import com.example.CineBook.dto.ticket.TicketResponse;
 import com.example.CineBook.mapper.BookingMapper;
 import com.example.CineBook.mapper.BookingProductMapper;
-import com.example.CineBook.model.Booking;
-import com.example.CineBook.model.BookingProduct;
-import com.example.CineBook.model.Customer;
-import com.example.CineBook.model.Ticket;
+import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.BookingService;
 import com.example.CineBook.service.SeatHoldService;
 import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,7 +47,11 @@ public class BookingServiceImpl implements BookingService {
     private final BookingProductMapper bookingProductMapper;
     private final SeatWebSocketService seatWebSocketService;
     private final SeatHoldService seatHoldService;
-    
+    private final MovieRepository movieRepository;
+    private final BranchRepository branchRepository;
+    private final RoomRepository roomRepository;
+    private final CityRepository cityRepository;
+
     private static final int BOOKING_EXPIRATION_MINUTES = 15;
 
     @Override
@@ -247,7 +249,7 @@ public class BookingServiceImpl implements BookingService {
                     .build();
             ticketsToBook.add(ticket);
         }
-        
+
         ticketRepository.saveAll(ticketsToBook);
 
         // Calculate prices
@@ -262,9 +264,9 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal subtotal = totalTicketPrice.add(totalFoodPrice);
         BigDecimal discountAmount = BigDecimal.ZERO;
-        
+
         // TODO: Apply promotion logic
-        
+
         BigDecimal finalAmount = subtotal.subtract(discountAmount);
 
         booking.setTotalTicketPrice(totalTicketPrice);
@@ -277,16 +279,16 @@ public class BookingServiceImpl implements BookingService {
         booking.setExpiredAt(null);
 
         Booking saved = bookingRepository.save(booking);
-        
+
         // Release holds from Redis
         seatHoldService.releaseSeats(bookingId);
-        
+
         // Broadcast SEAT_BOOKED
         for (Ticket ticket : ticketsToBook) {
             seatWebSocketService.notifySeatBooked(
-                ticket.getShowtimeId(),
-                ticket.getSeatId(),
-                bookingId
+                    ticket.getShowtimeId(),
+                    ticket.getSeatId(),
+                    bookingId
             );
         }
 
@@ -300,8 +302,8 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
 
         // Check if booking can be cancelled
-        if (booking.getStatus() == BookingStatus.CANCELLED || 
-            booking.getStatus() == BookingStatus.REFUNDED) {
+        if (booking.getStatus() == BookingStatus.CANCELLED ||
+                booking.getStatus() == BookingStatus.REFUNDED) {
             throw new BusinessException(MessageCode.BOOKING_ALREADY_CANCELLED);
         }
 
@@ -321,8 +323,8 @@ public class BookingServiceImpl implements BookingService {
         List<Ticket> tickets = ticketRepository.findByBookingId(bookingId);
         for (Ticket ticket : tickets) {
             seatWebSocketService.notifySeatReleased(
-                ticket.getShowtimeId(),
-                ticket.getSeatId()
+                    ticket.getShowtimeId(),
+                    ticket.getSeatId()
             );
         }
 
@@ -339,5 +341,47 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
         return bookingMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<MyBookingResponse> getMyBookings(Pageable pageable) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        UUID customerId = customerRepository.findByUserId(userId)
+                .map(Customer::getId)
+                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+
+        Page<Booking> bookings = bookingRepository.findByCustomerIdOrderByBookingDateDesc(customerId, pageable);
+
+        Page<MyBookingResponse> responsePage = bookings.map(booking -> {
+            Showtime showtime = showtimeRepository.findById(booking.getShowtimeId()).orElse(null);
+            Movie movie = showtime != null ? movieRepository.findById(showtime.getMovieId()).orElse(null) : null;
+            Branch branch = showtime != null ? branchRepository.findById(showtime.getBranchId()).orElse(null) : null;
+            Room room = showtime != null ? roomRepository.findById(showtime.getRoomId()).orElse(null) : null;
+            City city = branch != null ? cityRepository.findById(branch.getCityId()).orElse(null) : null;
+
+            int ticketCount = ticketRepository.findByBookingId(booking.getId()).size();
+
+            return MyBookingResponse.builder()
+                    .id(booking.getId())
+                    .showtimeId(booking.getShowtimeId())
+                    .showtimeStartTime(showtime != null ? showtime.getStartTime() : null)
+                    .movieTitle(movie != null ? movie.getTitle() : null)
+                    .moviePosterUrl(movie != null ? movie.getPosterUrl() : null)
+                    .branchName(branch != null ? branch.getName() : null)
+                    .roomName(room != null ? room.getName() : null)
+                    .cityName(city != null ? city.getName() : null)
+                    .ticketCount(ticketCount)
+                    .totalTicketPrice(booking.getTotalTicketPrice())
+                    .totalFoodPrice(booking.getTotalFoodPrice())
+                    .discountAmount(booking.getDiscountAmount())
+                    .finalAmount(booking.getFinalAmount())
+                    .bookingDate(booking.getBookingDate())
+                    .status(booking.getStatus())
+                    .paymentMethod(booking.getPaymentMethod())
+                    .build();
+        });
+
+        return PageResponse.of(responsePage);
     }
 }

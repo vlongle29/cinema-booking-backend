@@ -1,5 +1,6 @@
 package com.example.CineBook.controller;
 
+import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.dto.booking.*;
 import com.example.CineBook.dto.bookingproduct.BookingProductBatchRequest;
@@ -9,6 +10,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -94,5 +99,14 @@ public class BookingController {
             @RequestParam(required = false) String reason) {
         return ResponseEntity.ok(ApiResponse.success("Hủy booking thành công", 
             bookingService.cancelBooking(bookingId, reason)));
+    }
+
+    @GetMapping("/my-bookings")
+    @Operation(summary = "Lấy lịch sử đặt vé của user hiện tại")
+    public ResponseEntity<ApiResponse<PageResponse<MyBookingResponse>>> getMyBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("bookingDate").descending());
+        return ResponseEntity.ok(ApiResponse.success(bookingService.getMyBookings(pageable)));
     }
 }
