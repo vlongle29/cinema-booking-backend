@@ -1,6 +1,6 @@
 package com.example.CineBook.dto.product;
 
-import com.example.CineBook.common.constant.ProductType;
+import com.example.CineBook.common.constant.ProductCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -18,6 +18,6 @@ public class ProductCreateRequest {
     private BigDecimal price;
     
     private String imageUrl;
-    private ProductType type;
+    private ProductCategory category;
     private Boolean isActive;
 }

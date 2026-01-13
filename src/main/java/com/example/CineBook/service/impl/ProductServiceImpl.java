@@ -1,10 +1,12 @@
 package com.example.CineBook.service.impl;
 
+import com.example.CineBook.common.constant.ProductCategory;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.dto.product.ProductCreateRequest;
 import com.example.CineBook.dto.product.ProductResponse;
 import com.example.CineBook.dto.product.ProductUpdateRequest;
+import com.example.CineBook.mapper.ProductMapper;
 import com.example.CineBook.model.Product;
 import com.example.CineBook.repository.irepository.ProductRepository;
 import com.example.CineBook.service.ProductService;
@@ -21,27 +23,29 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductMapper productMapper;
 
     @Override
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
-        Product product = Product.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .imageUrl(request.getImageUrl())
-                .type(request.getType())
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .build();
+            Product product = productMapper.toEntity(request);
+            product.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
 
         Product saved = productRepository.save(product);
-        return toResponse(saved);
+        return productMapper.toResponse(saved);
     }
 
     @Override
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
-                .map(this::toResponse)
+                .map(productMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductResponse> getProductsByCategory(ProductCategory category) {
+        return productRepository.findByCategory(category).stream()
+                .map(productMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -51,15 +55,10 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MessageCode.PRODUCT_NOT_FOUND));
 
-        if (request.getName() != null) product.setName(request.getName());
-        if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getPrice() != null) product.setPrice(request.getPrice());
-        if (request.getImageUrl() != null) product.setImageUrl(request.getImageUrl());
-        if (request.getType() != null) product.setType(request.getType());
-        if (request.getIsActive() != null) product.setIsActive(request.getIsActive());
+        productMapper.updateEntity(request, product);
 
         Product updated = productRepository.save(product);
-        return toResponse(updated);
+        return productMapper.toResponse(updated);
     }
 
     @Override
@@ -69,17 +68,5 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException(MessageCode.PRODUCT_NOT_FOUND);
         }
         productRepository.deleteById(id);
-    }
-
-    private ProductResponse toResponse(Product product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .price(product.getPrice())
-                .imageUrl(product.getImageUrl())
-                .type(product.getType())
-                .isActive(product.getIsActive())
-                .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.CineBook.controller;
 
+import com.example.CineBook.common.constant.ProductCategory;
 import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.dto.product.ProductCreateRequest;
 import com.example.CineBook.dto.product.ProductResponse;
@@ -33,7 +34,11 @@ public class ProductController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả sản phẩm")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts() {
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts(
+            @RequestParam(required = false) ProductCategory category) {
+        if (category != null) {
+            return ResponseEntity.ok(ApiResponse.success(productService.getProductsByCategory(category)));
+        }
         return ResponseEntity.ok(ApiResponse.success(productService.getAllProducts()));
     }
 

@@ -1,7 +1,7 @@
 package com.example.CineBook.model;
 
 import com.example.CineBook.model.auditing.AuditingEntity;
-import com.example.CineBook.common.constant.ProductType;
+import com.example.CineBook.common.constant.ProductCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,7 +30,7 @@ public class Product extends AuditingEntity {
     
     @Enumerated(EnumType.STRING)
     @Column
-    private ProductType type;
+    private ProductCategory category;
     
     @Column(name = "is_active")
     private Boolean isActive;

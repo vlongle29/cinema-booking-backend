@@ -1,6 +1,6 @@
 package com.example.CineBook.dto.product;
 
-import com.example.CineBook.common.constant.ProductType;
+import com.example.CineBook.common.constant.ProductCategory;
 import lombok.Builder;
 import lombok.Data;
 
@@ -15,6 +15,6 @@ public class ProductResponse {
     private String description;
     private BigDecimal price;
     private String imageUrl;
-    private ProductType type;
+    private ProductCategory category;
     private Boolean isActive;
 }
