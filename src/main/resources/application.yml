@@ -19,7 +19,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-#   Cache & Redis Configuration
+  #   Cache & Redis Configuration
   cache:
     type: redis
     redis:
@@ -71,3 +71,13 @@ jwt:
   expirationMs: ${JWT_EXPIRATION_MS:86400000}
   refresh-expiration: ${JWT_REFRESH-EXPIRATION:604800000}
 
+payment:
+  vnPay:
+    url: ${PAY_URL}
+    tmnCode: ${TMN_CODE}
+    secretKey: ${SECRET_KEY}
+    returnUrl: ${RETURN_URL}
+    version: ${VERSION}
+    command: ${COMMAND}
+    orderType: ${ORDER_TYPE}
+    timeout: 15 # in minutes

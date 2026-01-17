@@ -38,12 +38,13 @@ public class SecurityConfig {
             "/api/auth/logout",
             "/api/auth/refresh-token",
             "/api/users/reset-password-user",
+            "/api/payments/vn-pay-callback",
             // Thêm các dòng này để cho phép truy cập Swagger
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/webjars/**",
-            "/ws/**"
+            "/ws/**",
     };
 
     @Bean

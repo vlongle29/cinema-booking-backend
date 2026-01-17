@@ -62,4 +62,16 @@ public class Booking extends AuditingEntity {
     
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+    
+    @Column(name = "refund_amount")
+    private BigDecimal refundAmount;
+    
+    @Column(name = "refund_date")
+    private LocalDateTime refundDate;
+    
+    @Column(name = "refund_reason", length = 500)
+    private String refundReason;
+    
+    @Column(name = "refund_transaction_no")
+    private String refundTransactionNo;
 }

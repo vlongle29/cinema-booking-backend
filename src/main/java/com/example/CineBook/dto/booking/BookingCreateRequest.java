@@ -23,4 +23,5 @@ public class BookingCreateRequest {
     private BigDecimal finalAmount;
     private BookingStatus status;
     private PaymentMethod paymentMethod;
+    private String ipAddress;
 }
