@@ -21,6 +21,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     
     List<Booking> findByStatusAndExpiredAtBefore(BookingStatus status, LocalDateTime expiredAt);
     
+    List<Booking> findByStatusAndUpdateTimeBefore(BookingStatus status, LocalDateTime updatedAt);
+    
     @Query("SELECT b FROM Booking b WHERE b.customerId = :customerId AND b.isDelete = false")
     Page<Booking> findByCustomerIdOrderByBookingDateDesc(@Param("customerId") UUID customerId, Pageable pageable);
 }
