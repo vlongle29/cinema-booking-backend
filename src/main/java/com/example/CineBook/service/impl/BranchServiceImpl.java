@@ -14,6 +14,9 @@ import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.BranchService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +38,7 @@ public class BranchServiceImpl implements BranchService {
     private final SysRoleRepository sysRoleRepository;
     private final CityRepository cityRepository;
 
+    @CachePut(value = "branchCache", key = "#result.id")
     @Override
     @Transactional
     public BranchResponse createBranch(BranchRequest request) {
@@ -47,6 +51,7 @@ public class BranchServiceImpl implements BranchService {
         return branchMapper.toResponse(saved);
     }
 
+    @Cacheable(value = "branchCache", key = "#id")
     @Override
     public BranchResponse getBranchById(UUID id) {
         Branch branch = branchRepository.findById(id)
@@ -54,6 +59,7 @@ public class BranchServiceImpl implements BranchService {
         return branchMapper.toResponse(branch);
     }
 
+    @CacheEvict(value = "branchCache", key = "#id")
     @Override
     @Transactional
     public BranchResponse updateBranch(UUID id, BranchUpdateRequest request) {
