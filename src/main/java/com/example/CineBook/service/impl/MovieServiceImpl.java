@@ -19,6 +19,9 @@ import com.example.CineBook.repository.irepository.MovieGenreRepository;
 import com.example.CineBook.repository.irepository.MovieRepository;
 import com.example.CineBook.service.MovieService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +42,10 @@ public class MovieServiceImpl implements MovieService {
     private final MovieMapper movieMapper;
     private final GenreMapper genreMapper;
 
+    @Caching(evict = {
+            @CacheEvict(value = "movies:now-showing", allEntries = true),
+            @CacheEvict(value = "movies:coming-soon", allEntries = true)
+    })
     @Override
     @Transactional
     public MovieResponse createMovie(CreateMovieRequest request) {
@@ -80,6 +87,7 @@ public class MovieServiceImpl implements MovieService {
         return PageResponse.of(responsePage);
     }
 
+    @Cacheable(value = "movies", key = "#id")
     @Override
     @Transactional(readOnly = true)
     public MovieResponse getMovieById(UUID id) {
@@ -93,6 +101,11 @@ public class MovieServiceImpl implements MovieService {
         return buildMovieResponse(movie);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "movies", key = "#id"),
+            @CacheEvict(value = "movies:now-showing", allEntries = true),
+            @CacheEvict(value = "movies:coming-soon", allEntries = true)
+    })
     @Override
     @Transactional
     public MovieResponse updateMovie(UUID id, UpdateMovieRequest request) {
@@ -128,6 +141,11 @@ public class MovieServiceImpl implements MovieService {
         return buildMovieResponse(updated);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "movies", key = "#id"),
+            @CacheEvict(value = "movies:now-showing", allEntries = true),
+            @CacheEvict(value = "movies:coming-soon", allEntries = true)
+    })
     @Override
     @Transactional
     public void deleteMovie(UUID id) {
@@ -157,5 +175,31 @@ public class MovieServiceImpl implements MovieService {
         response.setStatus(movie.getStatus() != null ? movie.getStatus().name() : null);
         
         return response;
+    }
+
+    @Cacheable(value = "movies:now-showing", key = "'list'")
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovieResponse> getNowShowingMovies() {
+        List<Movie> movies = movieRepository.findAll().stream()
+                .filter(movie -> !Boolean.TRUE.equals(movie.getIsDelete()))
+                .filter(movie -> movie.getStatus() == MovieStatus.SHOWING)
+                .collect(Collectors.toList());
+        return movies.stream()
+                .map(this::buildMovieResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Cacheable(value = "movies:coming-soon", key = "'list'")
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovieResponse> getComingSoonMovies() {
+        List<Movie> movies = movieRepository.findAll().stream()
+                .filter(movie -> !Boolean.TRUE.equals(movie.getIsDelete()))
+                .filter(movie -> movie.getStatus() == MovieStatus.COMING_SOON)
+                .collect(Collectors.toList());
+        return movies.stream()
+                .map(this::buildMovieResponse)
+                .collect(Collectors.toList());
     }
 }

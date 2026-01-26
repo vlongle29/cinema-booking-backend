@@ -73,19 +73,15 @@ public class MovieController {
     }
 
     @GetMapping("/now-showing")
-    @Operation(summary = "Lấy phim đang chiếu")
-    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getNowShowing(
-            @ModelAttribute MovieSearchDTO searchDTO) {
-        searchDTO.setStatus("SHOWING");
-        return ResponseEntity.ok(ApiResponse.success(movieService.searchMovies(searchDTO)));
+    @Operation(summary = "Lấy danh sách phim đang chiếu (cached)")
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getNowShowing() {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getNowShowingMovies()));
     }
 
     @GetMapping("/coming-soon")
-    @Operation(summary = "Lấy phim sắp chiếu")
-    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getComingSoon(
-            @ModelAttribute MovieSearchDTO searchDTO) {
-        searchDTO.setStatus("COMING_SOON");
-        return ResponseEntity.ok(ApiResponse.success(movieService.searchMovies(searchDTO)));
+    @Operation(summary = "Lấy danh sách phim sắp chiếu (cached)")
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getComingSoon() {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getComingSoonMovies()));
     }
 
 }
