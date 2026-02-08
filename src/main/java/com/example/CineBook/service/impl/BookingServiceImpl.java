@@ -17,8 +17,10 @@ import com.example.CineBook.mapper.BookingMapper;
 import com.example.CineBook.mapper.BookingProductMapper;
 import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
+import com.example.CineBook.service.BookingCodeGenerator;
 import com.example.CineBook.service.BookingService;
 import com.example.CineBook.service.SeatHoldService;
+import com.example.CineBook.service.TicketCodeGenerator;
 import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +54,10 @@ public class BookingServiceImpl implements BookingService {
     private final BranchRepository branchRepository;
     private final RoomRepository roomRepository;
     private final CityRepository cityRepository;
+    private final TicketCodeGenerator ticketCodeGenerator;
+    private final SeatRepository seatRepository;
+    private final SeatTypeRepository seatTypeRepository;
+    private final BookingCodeGenerator bookingCodeGenerator;
 
     private static final int BOOKING_EXPIRATION_MINUTES = 15;
 
@@ -240,12 +247,21 @@ public class BookingServiceImpl implements BookingService {
         // Convert holds to tickets
         List<Ticket> ticketsToBook = new ArrayList<>();
         for (var hold : holds) {
-            // TODO: Get actual price from Seat -> SeatType
+            String ticketCode = ticketCodeGenerator.generateTicketCode();
+
+            // Get actual price from Seat -> SeatType
+            Seat seat = seatRepository.findById(hold.getSeatId())
+                    .orElseThrow(() -> new BusinessException(MessageCode.SEAT_NOT_FOUND));
+            SeatType seatType = seatTypeRepository.findById(seat.getSeatTypeId())
+                    .orElseThrow(() -> new BusinessException(MessageCode.SEAT_TYPE_NOT_FOUND));
+
             Ticket ticket = Ticket.builder()
                     .bookingId(bookingId)
                     .seatId(hold.getSeatId())
                     .showtimeId(hold.getShowtimeId())
-                    .price(BigDecimal.valueOf(50000)) // Temporary fixed price
+                    .price(seatType.getBasePrice())
+                    .ticketCode(ticketCode)
+                    .isCheckedIn(false)
                     .build();
             ticketsToBook.add(ticket);
         }
@@ -277,11 +293,15 @@ public class BookingServiceImpl implements BookingService {
         booking.setPaymentMethod(request.getPaymentMethod());
         booking.setStatus(BookingStatus.PENDING_PAYMENT);
         booking.setExpiredAt(null);
+        
+        // Generate booking code for QR
+        String bookingCode = bookingCodeGenerator.generateBookingCode();
+        booking.setBookingCode(bookingCode);
 
         Booking saved = bookingRepository.save(booking);
 
-        // Release holds from Redis
-        seatHoldService.releaseSeats(bookingId);
+        // Clear holds from Redis (not release - seats are now booked in DB)
+        seatHoldService.clearHolds(bookingId);
 
         // Broadcast SEAT_BOOKED
         for (Ticket ticket : ticketsToBook) {
@@ -383,5 +403,64 @@ public class BookingServiceImpl implements BookingService {
         });
 
         return PageResponse.of(responsePage);
+    }
+
+    @Override
+    @Transactional
+    public BookingCheckInResponse checkInByBookingCode(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+
+        if (booking.getStatus() != BookingStatus.PAID) {
+            throw new BusinessException(MessageCode.BOOKING_NOT_PAID);
+        }
+
+        List<Ticket> tickets = ticketRepository.findByBookingId(booking.getId());
+        if (tickets.isEmpty()) {
+            throw new BusinessException(MessageCode.BOOKING_NO_TICKETS);
+        }
+
+        // Check if already checked in
+        boolean alreadyCheckedIn = tickets.stream().allMatch(Ticket::getIsCheckedIn);
+        Instant checkedInAt = null;
+
+        if (!alreadyCheckedIn) {
+            // Mark all tickets as checked in
+            for (Ticket ticket : tickets) {
+                ticket.setIsCheckedIn(true);
+            }
+            ticketRepository.saveAll(tickets);
+            checkedInAt = Instant.now();
+        } else {
+            // Get first ticket's update time as check-in time
+            checkedInAt = tickets.get(0).getUpdateTime();
+        }
+
+        // Get booking details
+        Showtime showtime = showtimeRepository.findById(booking.getShowtimeId()).orElse(null);
+        Movie movie = showtime != null ? movieRepository.findById(showtime.getMovieId()).orElse(null) : null;
+        Branch branch = showtime != null ? branchRepository.findById(showtime.getBranchId()).orElse(null) : null;
+        Room room = showtime != null ? roomRepository.findById(showtime.getRoomId()).orElse(null) : null;
+
+        List<String> seatNames = tickets.stream()
+                .map(ticket -> {
+                    Seat seat = seatRepository.findById(ticket.getSeatId()).orElse(null);
+                    return seat != null ? seat.getRowChar() + seat.getSeatNumber() : "Unknown";
+                })
+                .collect(Collectors.toList());
+
+        return BookingCheckInResponse.builder()
+                .bookingId(booking.getId())
+                .bookingCode(booking.getBookingCode())
+                .movieTitle(movie != null ? movie.getTitle() : null)
+                .showtimeStartTime(showtime != null ? showtime.getStartTime() : null)
+                .branchName(branch != null ? branch.getName() : null)
+                .roomName(room != null ? room.getName() : null)
+                .seatNames(seatNames)
+                .ticketCount(tickets.size())
+                .totalAmount(booking.getFinalAmount())
+                .isCheckedIn(true)
+                .checkedInAt(checkedInAt)
+                .build();
     }
 }

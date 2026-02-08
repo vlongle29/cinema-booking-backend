@@ -11,17 +11,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findByCustomerId(UUID customerId);
     
+    Optional<Booking> findByBookingCode(String bookingCode);
+    
     List<Booking> findByStatusAndExpiredAtBefore(BookingStatus status, LocalDateTime expiredAt);
     
-    List<Booking> findByStatusAndUpdateTimeBefore(BookingStatus status, LocalDateTime updatedAt);
+    List<Booking> findByStatusAndUpdateTimeBefore(BookingStatus status, Instant updatedAt);
     
     @Query("SELECT b FROM Booking b WHERE b.customerId = :customerId AND b.isDelete = false")
     Page<Booking> findByCustomerIdOrderByBookingDateDesc(@Param("customerId") UUID customerId, Pageable pageable);

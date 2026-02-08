@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -58,7 +59,7 @@ public class BookingExpirationScheduler {
     @Scheduled(fixedRate = PAYMENT_TIMEOUT_CHECK_INTERVAL)
     @Transactional
     public void cancelPendingPaymentBookings() {
-        LocalDateTime timeout = LocalDateTime.now().minusMinutes(PAYMENT_TIMEOUT_MINUTES);
+        Instant timeout = Instant.now().minusSeconds(PAYMENT_TIMEOUT_MINUTES * 60L);
 
         List<Booking> pendingBookings = bookingRepository
                 .findByStatusAndUpdateTimeBefore(BookingStatus.PENDING_PAYMENT, timeout);

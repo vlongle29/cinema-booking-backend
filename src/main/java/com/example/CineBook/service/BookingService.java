@@ -21,4 +21,5 @@ public interface BookingService {
     void deleteBooking(UUID id);
     BookingResponse cancelBooking(UUID bookingId, String reason);
     PageResponse<MyBookingResponse> getMyBookings(Pageable pageable);
+    BookingCheckInResponse checkInByBookingCode(String bookingCode);
 }

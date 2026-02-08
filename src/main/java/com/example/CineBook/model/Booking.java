@@ -28,6 +28,9 @@ public class Booking extends AuditingEntity {
     @Column(name = "showtime_id", nullable = false)
     private UUID showtimeId;
     
+    @Column(name = "booking_code", unique = true, length = 50)
+    private String bookingCode;
+    
     @Column(name = "promotion_id")
     private UUID promotionId;
     

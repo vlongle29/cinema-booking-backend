@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -108,5 +107,13 @@ public class BookingController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("bookingDate").descending());
         return ResponseEntity.ok(ApiResponse.success(bookingService.getMyBookings(pageable)));
+    }
+
+    @PostMapping("/check-in/{bookingCode}")
+    @Operation(summary = "Check-in bằng booking code (Scan QR tại rạp)", 
+               description = "Nhân viên scan QR code để check-in tất cả vé trong booking")
+    public ResponseEntity<ApiResponse<BookingCheckInResponse>> checkInByBookingCode(@PathVariable String bookingCode) {
+        return ResponseEntity.ok(ApiResponse.success("Check-in thành công", 
+            bookingService.checkInByBookingCode(bookingCode)));
     }
 }
