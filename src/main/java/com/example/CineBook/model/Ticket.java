@@ -29,4 +29,13 @@ public class Ticket extends AuditingEntity {
     
     @Column(name = "showtime_id", nullable = false)
     private UUID showtimeId;
+    
+    @Column(name = "ticket_code", unique = true, length = 20)
+    private String ticketCode;
+    
+    @Column(name = "qr_code_url")
+    private String qrCodeUrl;
+    
+    @Column(name = "is_checked_in")
+    private Boolean isCheckedIn = false;
 }
