@@ -10,6 +10,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -19,6 +20,23 @@ public class BookingWebSocketHandler extends TextWebSocketHandler {
     private final WebSocketSessionManager sessionManager;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Khi client kết nối WebSocket, gửi một welcome message để xác nhận kết nối thành công.
+     * Client có thể gửi message để subscribe vào các topic như "showtime" hoặc "booking".
+     * Ví dụ message từ client:
+     * {
+     *   "type": "SUBSCRIBE_SHOWTIME",
+     *   "showtimeId": "123e4567-e89b-12d3-a456-426614174000"
+     * }
+     *
+     * Hoặc:
+     * {
+     *   "type": "SUBSCRIBE_BOOKING",
+     *   "bookingId": "123e4567-e89b-12d3-a456-426614174000"
+     * }
+     *
+     * Server sẽ lưu session vào WebSocketSessionManager theo topic và ID tương ứng.
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         // Extract showtimeId from URL: /ws/seats/{showtimeId}
@@ -27,7 +45,7 @@ public class BookingWebSocketHandler extends TextWebSocketHandler {
 
         // Gửi welcome message
         try {
-            var response = java.util.Map.of(
+            var response = Map.of(
                     "type", "CONNECTED",
                     "sessionId", session.getId()
             );
@@ -47,7 +65,7 @@ public class BookingWebSocketHandler extends TextWebSocketHandler {
             log.debug("Received message from {}: {}", session.getId(), payload);
 
             // Parse JSON message
-            var messageData = objectMapper.readValue(payload, java.util.Map.class);
+            var messageData = objectMapper.readValue(payload, Map.class);
             String type = (String) messageData.get("type");
 
             if ("SUBSCRIBE_SHOWTIME".equals(type)) {
@@ -57,7 +75,7 @@ public class BookingWebSocketHandler extends TextWebSocketHandler {
                 sessionManager.subscribe("showtime", UUID.fromString(showtimeId), session);
 
                 // Send confirmation response
-                var response = java.util.Map.of(
+                var response = Map.of(
                         "type", "SUBSCRIBED",
                         "topic", "showtime",
                         "showtimeId", showtimeId

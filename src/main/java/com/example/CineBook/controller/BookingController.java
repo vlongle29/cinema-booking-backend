@@ -35,15 +35,35 @@ public class BookingController {
 //                .body(ApiResponse.success("Tạo booking thành công", bookingService.createBooking(request)));
 //    }
 
+    @PostMapping("/confirm")
+    @Operation(summary = "Xác nhận đặt vé (Tạo booking + Hold ghế + Lưu sản phẩm)",
+               description = "User chọn ghế và sản phẩm xong, click 'Đặt vé' → Gọi API này → Bắt đầu countdown 15 phút")
+    public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@Valid @RequestBody BookingConfirmRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Xác nhận đặt vé thành công. Vui lòng thanh toán trong 15 phút.", 
+                    bookingService.confirmBooking(request)));
+    }
+
+
+    @Deprecated(since = "2.0", forRemoval = true)
     @PostMapping("/draft")
-    @Operation(summary = "Tạo draft booking (Bước 1: Chọn suất chiếu)")
+    @Operation(summary = "Tạo draft booking (Bước 1: Chọn suất chiếu) -> [DEPRECATED] Tạo draft booking - Sử dụng /confirm thay thế", deprecated = true)
     public ResponseEntity<ApiResponse<BookingResponse>> createDraftBooking(@Valid @RequestBody BookingDraftRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo draft booking thành công", bookingService.createDraftBooking(request)));
     }
 
+    @PostMapping("/{bookingId}/refresh")
+    @Operation(summary = "Làm mới hoặc tạo lại booking khi hết hạn", 
+               description = "Gia hạn booking nếu còn DRAFT, hoặc tạo booking mới nếu đã EXPIRED")
+    public ResponseEntity<ApiResponse<BookingResponse>> refreshOrCreateBooking(@PathVariable UUID bookingId) {
+        return ResponseEntity.ok(ApiResponse.success("Làm mới booking thành công", 
+            bookingService.refreshOrCreateBooking(bookingId)));
+    }
+
+    @Deprecated(since = "2.0", forRemoval = true)
     @PostMapping("/{bookingId}/tickets/batch")
-    @Operation(summary = "Thêm nhiều vé vào booking (Bước 2: Chọn ghế)")
+    @Operation(summary = "Thêm nhiều vé vào booking (Bước 2: Chọn ghế) -> [DEPRECATED] Thêm nhiều vé vào booking - Sử dụng /confirm thay thế", deprecated = true)
     public ResponseEntity<ApiResponse<BookingResponse>> addTicketsBatch(
             @PathVariable UUID bookingId,
             @Valid @RequestBody TicketBatchRequest request) {

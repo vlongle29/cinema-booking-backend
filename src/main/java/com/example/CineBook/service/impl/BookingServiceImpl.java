@@ -10,6 +10,7 @@ import com.example.CineBook.dto.bookingproduct.BookingProductBatchRequest;
 import com.example.CineBook.dto.bookingproduct.BookingProductItemRequest;
 import com.example.CineBook.dto.bookingproduct.BookingProductResponse;
 import com.example.CineBook.dto.seat.SeatHoldData;
+import com.example.CineBook.dto.seat.SeatHoldRequest;
 import com.example.CineBook.dto.ticket.TicketBatchRequest;
 import com.example.CineBook.dto.ticket.TicketItemRequest;
 import com.example.CineBook.dto.ticket.TicketResponse;
@@ -58,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
     private final SeatRepository seatRepository;
     private final SeatTypeRepository seatTypeRepository;
     private final BookingCodeGenerator bookingCodeGenerator;
+    private final ProductRepository productRepository;
 
     private static final int BOOKING_EXPIRATION_MINUTES = 15;
 
@@ -109,6 +111,127 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public BookingResponse confirmBooking(BookingConfirmRequest request) {
+        // Validate showtime
+        Showtime showtime = showtimeRepository.findById(request.getShowtimeId())
+                .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
+
+        // Check if showtime already started
+        if (showtime.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(MessageCode.SHOWTIME_ALREADY_STARTED);
+        }
+
+        // Get current user
+        UUID userId = SecurityUtils.getCurrentUserId();
+        UUID customerId = null;
+
+        if (!SecurityUtils.hasRole("ADMIN")) {
+            customerId = customerRepository.findByUserId(userId)
+                    .map(Customer::getId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        }
+
+        // Validate all seats exist
+        for (UUID seatId : request.getSeatIds()) {
+            Seat seat = seatRepository.findById(seatId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.SEAT_NOT_FOUND));
+            
+            // Check if seat already booked in DB
+            boolean alreadyBooked = ticketRepository.existsBySeatIdAndShowtimeId(seatId, request.getShowtimeId());
+            if (alreadyBooked) {
+                throw new BusinessException(MessageCode.SEAT_ALREADY_BOOKED);
+            }
+        }
+
+        // Validate products if provided
+        if (request.getProducts() != null) {
+            for (BookingConfirmRequest.ProductItem item : request.getProducts()) {
+                Product product = productRepository.findById(item.getProductId())
+                        .orElseThrow(() -> new BusinessException(MessageCode.PRODUCT_NOT_FOUND));
+            }
+        }
+
+        //
+
+        // Create draft booking
+        Booking booking = Booking.builder()
+                .customerId(customerId)
+                .showtimeId(request.getShowtimeId())
+                .status(BookingStatus.DRAFT)
+                .bookingDate(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusMinutes(BOOKING_EXPIRATION_MINUTES))
+                .totalTicketPrice(BigDecimal.ZERO)
+                .totalFoodPrice(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .finalAmount(BigDecimal.ZERO)
+                .build();
+
+        Booking savedBooking = bookingRepository.save(booking);
+        UUID bookingId = savedBooking.getId();
+
+        // Hold all seats in Redis
+        for (UUID seatId : request.getSeatIds()) {
+            try {
+                seatHoldService.holdSeats(bookingId, SeatHoldRequest.builder()
+                        .seatId(seatId)
+                        .showtimeId(request.getShowtimeId())
+                        .build());
+            } catch (BusinessException e) {
+                // If any seat fails to hold, release all previously held seats and delete booking
+                seatHoldService.clearHolds(bookingId);
+                bookingRepository.delete(savedBooking);
+                throw e;
+            }
+        }
+
+        // Save products if provided
+        List<BookingProductResponse> productResponses = new ArrayList<>();
+        if (request.getProducts() != null && !request.getProducts().isEmpty()) {
+            List<BookingProduct> products = new ArrayList<>();
+            for (BookingConfirmRequest.ProductItem item : request.getProducts()) {
+                BookingProduct product = BookingProduct.builder()
+                        .bookingId(bookingId)
+                        .productId(item.getProductId())
+                        .quantity(item.getQuantity())
+                        .priceAtPurchase(item.getPriceAtPurchase())
+                        .build();
+                products.add(product);
+            }
+            List<BookingProduct> savedProduct = bookingProductRepository.saveAll(products);
+                productResponses = savedProduct.stream()
+                        .map(bookingProductMapper::toResponse)
+                        .collect(Collectors.toList());
+        }
+
+        // Build ticket responses from held seats
+        List<TicketResponse> ticketResponses = new ArrayList<>();
+        for (UUID seatId : request.getSeatIds()) {
+            Seat seat = seatRepository.findById(seatId).orElseThrow();
+            SeatType seatType = seatTypeRepository.findById(seat.getSeatTypeId()).orElseThrow();
+            String seatName = seat.getRowChar() + seat.getSeatNumber();
+            ticketResponses.add(TicketResponse.builder()
+                    .bookingId(bookingId)
+                    .seatId(seatId)
+                    .seatName(seatName)
+                    .seatTypeName(seatType.getName())
+                    .showtimeId(request.getShowtimeId())
+                    .price(seatType.getBasePrice())
+                    .build());
+        }
+
+        BookingResponse response = bookingMapper.toResponse(savedBooking);
+        response.setTickets(ticketResponses);
+        response.setProducts(productResponses);
+
+        return response;
+    }
+
+    /**
+     * @deprecated Sử dụng {@link #confirmBooking(BookingConfirmRequest)} thay thế
+     */
+    @Deprecated(since = "2.0", forRemoval = true)
+    @Override
+    @Transactional
     public BookingResponse createDraftBooking(BookingDraftRequest request) {
         if (!showtimeRepository.existsById(request.getShowtimeId())) {
             throw new BusinessException(MessageCode.SHOWTIME_NOT_FOUND);
@@ -116,10 +239,13 @@ public class BookingServiceImpl implements BookingService {
 
         // Get userId from token
         UUID userId = SecurityUtils.getCurrentUserId();
-        // Find or create customer from userId
-        UUID customerId = customerRepository.findByUserId(userId)
-                .map(Customer::getId)
-                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        UUID customerId = null;
+
+        if (!SecurityUtils.hasRole("ADMIN")) {
+            customerId = customerRepository.findByUserId(userId)
+                    .map(Customer::getId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        }
 
         Booking booking = Booking.builder()
                 .customerId(customerId)
@@ -135,6 +261,37 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
         return bookingMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse refreshOrCreateBooking(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+
+        // If booking is still DRAFT and not expired, just extend expiration
+        if (booking.getStatus() == BookingStatus.DRAFT && 
+            booking.getExpiredAt().isAfter(LocalDateTime.now())) {
+            booking.setExpiredAt(LocalDateTime.now().plusMinutes(BOOKING_EXPIRATION_MINUTES));
+            Booking saved = bookingRepository.save(booking);
+            return bookingMapper.toResponse(saved);
+        }
+
+        // If booking is EXPIRED or other status, create new draft booking
+        if (booking.getStatus() == BookingStatus.EXPIRED || 
+            booking.getStatus() == BookingStatus.CANCELLED) {
+            
+            // Clear old holds if any
+            seatHoldService.clearHolds(bookingId);
+            
+            // Create new draft booking with same showtime
+            BookingDraftRequest newRequest = new BookingDraftRequest();
+            newRequest.setShowtimeId(booking.getShowtimeId());
+            return createDraftBooking(newRequest);
+        }
+
+        // For other statuses (PAID, CONFIRMED, etc.), cannot refresh
+        throw new BusinessException(MessageCode.BOOKING_NOT_IN_DRAFT_STATUS);
     }
 
     /**
@@ -198,13 +355,24 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal finalAmount = subtotal.subtract(discountAmount);
 
         List<TicketResponse> ticketResponses = tickets.stream()
-                .map(t -> TicketResponse.builder()
-                        .id(t.getId())
-                        .bookingId(t.getBookingId())
-                        .seatId(t.getSeatId())
-                        .showtimeId(t.getShowtimeId())
-                        .price(t.getPrice())
-                        .build())
+                .map(t -> {
+                    Seat seat = seatRepository.findById(t.getSeatId())
+                            .orElseThrow(() -> new BusinessException(MessageCode.SEAT_NOT_FOUND));
+                    SeatType seatType = seatTypeRepository.findById(seat.getSeatTypeId())
+                            .orElseThrow(() -> new BusinessException(MessageCode.SEAT_TYPE_NOT_FOUND));
+                    String seatName = seat.getRowChar() + seat.getSeatNumber();
+                    
+                    return TicketResponse.builder()
+                            .id(t.getId())
+                            .bookingId(t.getBookingId())
+                            .seatId(t.getSeatId())
+                            .seatName(seatName)
+                            .seatTypeName(seatType.getName())
+                            .showtimeId(t.getShowtimeId())
+                            .price(t.getPrice())
+                            .ticketCode(t.getTicketCode())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         List<BookingProductResponse> productResponses = products.stream()

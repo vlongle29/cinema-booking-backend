@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface BookingService {
     BookingResponse createBooking(BookingCreateRequest request);
     BookingResponse createDraftBooking(BookingDraftRequest request);
+    BookingResponse confirmBooking(BookingConfirmRequest request);
+    BookingResponse refreshOrCreateBooking(UUID bookingId);
     BookingResponse addTicketsBatch(UUID bookingId, TicketBatchRequest request);
     BookingResponse addProductsBatch(UUID bookingId, BookingProductBatchRequest request);
     BookingSummaryResponse getBookingSummary(UUID bookingId);
