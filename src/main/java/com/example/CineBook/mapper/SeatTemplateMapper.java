@@ -21,13 +21,18 @@ public interface SeatTemplateMapper {
     SeatTemplateResponse toResponse(SeatTemplate template);
 
     @Mapping(target = "templateId", source = "templateId")
-    @Mapping(target = "rowChar", expression = "java(extractRowChar(request.getSeatNumber()))")
-    @Mapping(target = "seatNum", expression = "java(extractSeatNumber(request.getSeatNumber()))")
+    @Mapping(target = "rowChar", qualifiedByName = "extractRowChar", source = "request.seatNumber")
+    @Mapping(target = "seatNum", qualifiedByName = "extractSeatNumber", source = "request.seatNumber")
     @Mapping(target = "seatTypeId", source = "request.seatTypeId")
     @Mapping(target = "isAisle", source = "request.isAisle")
     SeatTemplateDetail toDetailEntity(SeatTemplateDetailRequest request, UUID templateId);
 
+    @Mapping(target = "id", source = "detail.id")
     @Mapping(target = "seatNumber", expression = "java(combineSeatNumber(detail))")
+    @Mapping(target = "rowChar", source = "detail.rowChar")
+    @Mapping(target = "seatNum", source = "detail.seatNum")
+    @Mapping(target = "seatTypeId", source = "detail.seatTypeId")
+    @Mapping(target = "isAisle", source = "detail.isAisle")
     @Mapping(target = "seatType", source = "seatType")
     SeatTemplateDetailResponse toDetailResponse(SeatTemplateDetail detail, SeatType seatType);
 
@@ -35,10 +40,12 @@ public interface SeatTemplateMapper {
         return detail.getRowChar() + detail.getSeatNum();
     }
 
+    @Named("extractRowChar")
     default String extractRowChar(String seatNumber) {
         return seatNumber.replaceAll("[0-9]", "");
     }
 
+    @Named("extractSeatNumber")
     default Integer extractSeatNumber(String seatNumber) {
         return Integer.parseInt(seatNumber.replaceAll("[^0-9]", ""));
     }
