@@ -2,6 +2,7 @@ package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
+import com.example.CineBook.common.security.BranchSecurityHelper;
 import com.example.CineBook.dto.seat.SeatResponse;
 import com.example.CineBook.dto.seattemplate.*;
 import com.example.CineBook.mapper.SeatMapper;
@@ -28,6 +29,7 @@ public class SeatTemplateServiceImpl implements SeatTemplateService {
     private final SeatRepository seatRepository;
     private final SeatTemplateMapper seatTemplateMapper;
     private final SeatMapper seatMapper;
+    private final BranchSecurityHelper branchSecurityHelper;
 
     @Override
     @Transactional
@@ -172,45 +174,54 @@ public class SeatTemplateServiceImpl implements SeatTemplateService {
 
     @Override
     @Transactional
-    public List<SeatResponse> applyTemplateToRoom(UUID templateId, UUID roomId) {
-        // 1. Check if template exists
+    public List<SeatResponse> applyTemplateToRoom(UUID roomId, UUID templateId) {
+        // 1. Get branchId from current user
+        UUID userBranchId = branchSecurityHelper.getCurrentUserBranchId();
+        
+        // 2. Check if template exists
         SeatTemplate template = seatTemplateRepository.findById(templateId)
                 .orElseThrow(() -> new BusinessException(MessageCode.SEAT_TEMPLATE_NOT_FOUND));
 
-        // 2. Check if room exists
+        // 3. Check if room exists
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
-
-        // 3. Check if room already has seats
-        long existingSeatCount = seatRepository.countByRoomId(roomId);
-        if (existingSeatCount > 0) {
-            throw new BusinessException(MessageCode.ROOM_HAS_SEATS);
+        
+        // 4. Security check: verify user has access to this room
+        if (userBranchId != null && !userBranchId.equals(room.getBranchId())) {
+            throw new BusinessException(MessageCode.ACCESS_DENIED);
         }
 
-        // 4. Get all seats from template
+        // 5. Delete old seats if any
+        List<Seat> existingSeats = seatRepository.findByRoomId(roomId);
+        if (!existingSeats.isEmpty()) {
+            seatRepository.deleteAll(existingSeats);
+        }
+
+        // 6. Get all seats from template
         List<SeatTemplateDetail> templateSeats = seatTemplateDetailRepository.findByTemplateId(templateId);
         if (templateSeats.isEmpty()) {
-            throw new BusinessException(MessageCode.SEAT_TEMPLATE_NOT_FOUND);
+            throw new BusinessException(MessageCode.SEAT_TEMPLATE_EMPTY);
         }
 
-        // 5. Clone seats from template to room (create new Seat entities)
+        // 7. Clone seats from template to room with branchId
         List<Seat> newSeats = templateSeats.stream()
                 .map(templateSeat -> Seat.builder()
                         .roomId(roomId)
+                        .branchId(room.getBranchId())
                         .rowChar(templateSeat.getRowChar())
                         .seatNumber(templateSeat.getSeatNum())
                         .seatTypeId(templateSeat.getSeatTypeId())
                         .build())
                 .toList();
 
-        // 6. Save all seats
+        // 8. Save all seats
         List<Seat> savedSeats = seatRepository.saveAll(newSeats);
 
-        // 7. Update room capacity
+        // 9. Update room capacity
         room.setCapacity(savedSeats.size());
         roomRepository.save(room);
 
-        // 8. Return created seats with seat type info
+        // 10. Return created seats with seat type info
         return savedSeats.stream()
                 .map(seat -> {
                     SeatType seatType = seatTypeRepository.findById(seat.getSeatTypeId())

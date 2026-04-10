@@ -3,6 +3,7 @@ package com.example.CineBook.service.impl;
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
+import com.example.CineBook.common.security.BranchSecurityHelper;
 import com.example.CineBook.dto.room.RoomRequest;
 import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.dto.room.RoomSearchDTO;
@@ -17,6 +18,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import com.example.CineBook.service.RoomService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,10 +37,41 @@ public class RoomServiceImpl implements RoomService {
     private final BranchRepository branchRepository;
     private final RoomMapper roomMapper;
     private final SeatRepository seatRepository;
+    private final BranchSecurityHelper branchSecurityHelper;
 
+    @Override
+    public List<RoomResponse> getAllRooms() {
+        UUID branchId = branchSecurityHelper.getCurrentUserBranchId();
+        
+        List<Room> rooms;
+        if (branchId == null) {
+            // Super Admin: get all rooms
+            rooms = roomRepository.findAll();
+        } else {
+            // Branch user: get only rooms of their branch
+            rooms = roomRepository.findByBranchId(branchId);
+        }
+        
+        return rooms.stream()
+                .map(roomMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "rooms", key = "#result.id"),
+            @CacheEvict(value = "rooms:by-branch", key = "#result.branchId")
+    })
     @Override
     @Transactional
     public RoomResponse createRoom(RoomRequest request) {
+        // Auto-assign branchId from current user
+        UUID branchId = branchSecurityHelper.getCurrentUserBranchId();
+        
+        // If user has branchId, use it; otherwise use from request (for Super Admin)
+        if (branchId != null) {
+            request.setBranchId(branchId);
+        }
+        
         if (!branchRepository.existsById(request.getBranchId())) {
             throw new BusinessException(MessageCode.BRANCH_NOT_FOUND);
         }
@@ -51,6 +86,7 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(saved);
     }
 
+    @Cacheable(value = "rooms", key = "#id")
     @Override
     public RoomResponse getRoomById(UUID id) {
         Room room = roomRepository.findById(id)
@@ -58,6 +94,11 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(room);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "rooms", key = "#id"),
+            @CacheEvict(value = "rooms:by-branch", allEntries = true),
+            @CacheEvict(value = "rooms:seats", key = "#id")
+    })
     @Override
     @Transactional
     public RoomResponse updateRoom(UUID id, RoomRequest request) {
@@ -77,6 +118,11 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(updated);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "rooms", key = "#id"),
+            @CacheEvict(value = "rooms:by-branch", allEntries = true),
+            @CacheEvict(value = "rooms:seats", key = "#id")
+    })
     @Override
     @Transactional
     public void deleteRoom(UUID id) {
@@ -92,6 +138,11 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.softDeleteById(id);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "rooms", key = "#id"),
+            @CacheEvict(value = "rooms:by-branch", allEntries = true),
+            @CacheEvict(value = "rooms:seats", key = "#id")
+    })
     @Override
     @Transactional
     public void deleteRoomCascade(UUID id) {
@@ -124,6 +175,7 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(room);
     }
 
+    @Cacheable(value = "rooms:by-branch", key = "#branchId")
     @Override
     public List<RoomResponse> getRoomsByBranch(UUID branchId) {
         if (!branchRepository.existsById(branchId)) {

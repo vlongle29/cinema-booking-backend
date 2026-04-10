@@ -4,23 +4,27 @@ import com.example.CineBook.dto.auth.AuthorityProjection;
 import com.example.CineBook.model.SysUser;
 import com.example.CineBook.repository.irepository.SysUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+/**
+ * Dịch vụ tải thông tin người dùng tùy chỉnh từ cơ sở dữ liệu.
+ * Lấy thông tin người dùng và quyền hạn (roles và permissions) để xác thực và ủy quyền.
+ */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
     private final SysUserRepository userRepository;
 
+    // Tải thông tin người dùng từ cơ sở dữ liệu dựa trên tên đăng nhập
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         SysUser user = userRepository.findByUsername(username)
@@ -41,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
 
-    private Collection<GrantedAuthority> getAuthorities(java.util.UUID userId) {
+    private Collection<GrantedAuthority> getAuthorities(UUID userId) {
         List<AuthorityProjection> projections = userRepository.findAllAuthoritiesByUserId(userId);
         Set<GrantedAuthority> authorities = new HashSet<>();
 
@@ -57,5 +61,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         return authorities;
+    }
+
+    private UUID getCurrentBranchId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof SysUser user) {
+            return user.getBranchId();
+        }
+        return null;
     }
 }

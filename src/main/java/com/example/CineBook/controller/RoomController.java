@@ -6,14 +6,18 @@ import com.example.CineBook.dto.room.RoomRequest;
 import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.dto.room.RoomSearchDTO;
 import com.example.CineBook.service.RoomService;
+import com.example.CineBook.service.ShowtimeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Room Management", description = "APIs quản lý phòng chiếu")
@@ -23,12 +27,20 @@ import java.util.UUID;
 public class RoomController {
 
     private final RoomService roomService;
+    private final ShowtimeService showtimeService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Tạo phòng chiếu mới")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@Valid @RequestBody RoomRequest request) {
         return ResponseEntity.ok(ApiResponse.success(roomService.createRoom(request)));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @Operation(summary = "Lấy danh sách tất cả phòng chiếu", description = "Super Admin: lấy tất cả. Branch user: chỉ lấy phòng của chi nhánh")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
+        return ResponseEntity.ok(ApiResponse.success(roomService.getAllRooms()));
     }
 
     @GetMapping("/{id}")
@@ -76,5 +88,16 @@ public class RoomController {
     public ResponseEntity<ApiResponse<PageResponse<RoomResponse>>> searchRooms(
             @ModelAttribute RoomSearchDTO searchDTO) {
         return ResponseEntity.ok(ApiResponse.success(roomService.searchRooms(searchDTO)));
+    }
+    
+    @GetMapping("/{roomId}/available-slots")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Operation(summary = "Lấy danh sách time slots khả dụng cho phòng và phim trong ngày")
+    public ResponseEntity<ApiResponse<List<String>>> getAvailableTimeSlots(
+            @PathVariable UUID roomId,
+            @RequestParam UUID movieId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(ApiResponse.success(
+            showtimeService.getAvailableTimeSlots(roomId, movieId, date)));
     }
 }

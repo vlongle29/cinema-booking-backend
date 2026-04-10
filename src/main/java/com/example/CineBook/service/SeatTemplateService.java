@@ -18,5 +18,5 @@ public interface SeatTemplateService {
 
     void deleteTemplate(UUID templateId);
 
-    List<SeatResponse> applyTemplateToRoom(UUID templateId, UUID roomId);
+    List<SeatResponse> applyTemplateToRoom(UUID roomId, UUID templateId);
 }

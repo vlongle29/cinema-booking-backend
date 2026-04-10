@@ -64,10 +64,10 @@ public class SeatTemplateController {
 
     @PostMapping("/apply")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Operation(summary = "Áp dụng mẫu ghế vào phòng", description = "Clone tất cả ghế từ template vào phòng chiếu")
+    @Operation(summary = "Áp dụng mẫu ghế vào phòng", description = "Clone tất cả ghế từ template vào phòng chiếu. Tự động gán branchId từ người dùng hiện tại")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> applyTemplateToRoom(
             @Valid @RequestBody ApplyTemplateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                seatTemplateService.applyTemplateToRoom(request.getTemplateId(), request.getRoomId())));
+                seatTemplateService.applyTemplateToRoom(request.getRoomId(), request.getTemplateId())));
     }
 }

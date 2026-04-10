@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface RoomService {
+    List<RoomResponse> getAllRooms();
     RoomResponse createRoom(RoomRequest request);
     RoomResponse getRoomById(UUID id);
     RoomResponse updateRoom(UUID id, RoomRequest request);

@@ -57,6 +57,34 @@ public final class SecurityUtils {
     }
 
     /**
+     * Get branchId of current user. Returns null if user is Super Admin.
+     */
+    public static UUID getCurrentUserBranchId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails customUserDetails) {
+            // Check if user has SUPER_ADMIN role
+            boolean isSuperAdmin = customUserDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(auth -> auth.equals("ROLE_SUPER_ADMIN") || auth.equals("SUPER_ADMIN"));
+            
+            if (isSuperAdmin) {
+                return null;
+            }
+            
+            // For non-super-admin users, get branchId from database
+            // This requires injecting UserRepository, so we'll handle it in service layer
+            return null; // Will be handled in service layer
+        }
+        
+        return null;
+    }
+
+    /**
      * Kiểm tra user hiện tại có role cụ thể không
      */
     public static boolean hasRole(String role) {
