@@ -1,5 +1,6 @@
 package com.example.CineBook.controller;
 
+import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.common.util.RequestUtils;
 import com.example.CineBook.dto.auth.LoginRequest;
@@ -43,32 +44,97 @@ public class AuthController {
 
         LoginResponse loginResponse = authService.login(request, device, ipAddress);
 
-        // Nếu cấu hình như này để lưu sessionId vào cookie httpOnly, vì thế fe nhận được sẽ tự động lưu sessionId vào cokie
+        // Set sessionId cookie (session locator)
+        // Nếu cấu hình như này để lưu sessionId vào cookie httpOnly, vì thế fe nhận được sẽ tự động lưu sessionId vào cookie
         // Còn nếu gửi sessionId thông thường về cho fe thì fe sẽ phải tự động lưu sessionId vào cookie --> Thiếu an toàn hơn vì js có thể can thiệp
         // fe chỉ cần gửi --> axios.post("/auth/login", data, { withCredentials: true });
-        ResponseCookie cookie = ResponseCookie.from("sessionId", loginResponse.getSessionId().toString())
+        ResponseCookie sessionCookie = ResponseCookie.from("sessionId", loginResponse.getSessionId().toString())
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
                 .path("/")
-                .maxAge(7 * 24 * 60 * 60)
+                .maxAge(8 * 24 * 60 * 60) // 8 days
                 .build();
 
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString()).body(ApiResponse.success(loginResponse));
+        // Set refreshToken cookie (credential)
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 24 * 60 * 60) // 8 days
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success(loginResponse));
     }
 
     @Operation(summary = "Làm mới Access Token", description = "Lấy access token mới bằng refresh token hợp lệ.")
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@CookieValue("sessionId") UUID sessionId) {
-        LoginResponse loginResponse = authService.refreshToken(sessionId);
-        return ResponseEntity.ok(ApiResponse.success(loginResponse));
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(
+            @CookieValue(value = "sessionId", required = false) UUID sessionId,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+
+        if (sessionId == null || refreshToken == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(MessageCode.INVALID_TOKEN, 400));
+        }
+        
+        LoginResponse loginResponse = authService.refreshToken(sessionId, refreshToken);
+        
+        // Rotate both cookies with new values
+        ResponseCookie sessionCookie = ResponseCookie.from("sessionId", loginResponse.getSessionId().toString())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 24 * 60 * 60)
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 24 * 60 * 60)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success(loginResponse));
     }
 
-    @Operation(summary = "Đăng xuất", description = "Vô hiệu hóa token hiện tại.")
+    @Operation(summary = "Đăng xuất", description = "Vô hiệu hóa token hiện tại và xóa session.")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authHeader, @RequestBody UUID sessionId) {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(value = "sessionId", required = false) UUID sessionId) {
+        
         authService.logout(authHeader, sessionId);
-        return ResponseEntity.ok(ApiResponse.success());
+        
+        // Clear cookies
+        ResponseCookie clearSessionCookie = ResponseCookie.from("sessionId", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        ResponseCookie clearRefreshCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearSessionCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString())
+                .body(ApiResponse.success());
     }
 
     @Operation(summary = "Lấy thông tin người dùng hiện tại", description = "Lấy thông tin chi tiết của người dùng đã xác thực.")

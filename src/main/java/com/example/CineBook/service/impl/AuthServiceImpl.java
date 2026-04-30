@@ -101,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(rollbackFor = Exception.class)
     public LoginResponse login(LoginRequest request, String device, String ipAddress) {
         SysUser user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BusinessException(MessageCode.ACCOUNT_NOT_EXISTS));
@@ -127,11 +127,6 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
         }
 
-        // if the account is locked
-        if (user.getLockFlag().equals(LockFlag.LOCK.getValue())) {
-            throw new BusinessException(MessageCode.ACCOUNT_LOCKED);
-        }
-
         return buildLoginResponse(user, device, ipAddress);
     }
 
@@ -143,69 +138,111 @@ public class AuthServiceImpl implements AuthService {
 
         // Create expiry date (8 days)
         Date expiry = new Date(System.currentTimeMillis() + 8L * 24 * 60 * 60 * 1000);
+        Date createdAt = new Date();
 
-        // Hash refreshToken
+        // Hash refreshToken before storing
         String hashedRefreshToken = jwtTokenProvider.hashToken(refreshToken);
 
-        // Save refreshToken into session
-        SessionInfo sessionInfo = new SessionInfo(user.getId(), user.getUsername(), hashedRefreshToken, expiry, device, ipAddress);
+        // Save session with hashed refresh token
+        SessionInfo sessionInfo = new SessionInfo(
+            user.getId(), 
+            user.getUsername(), 
+            hashedRefreshToken,
+            expiry, 
+            device, 
+            ipAddress,
+            createdAt
+        );
         redisTemplate.opsForValue().set(sessionId.toString(), sessionInfo, 8, TimeUnit.DAYS);
 
         UserInfoResponse userInfo = sysUserService.getUserDetail(user.getId());
         List<String> permissions = sysPermissionService.getPermissionInfoByUserId(user.getId());
 
-        return new LoginResponse(accessToken, userInfo, permissions, sessionId);
+        return new LoginResponse(accessToken, userInfo, permissions, sessionId, refreshToken);
     }
 
     /**
-     * Refresh access token bằng refresh token còn hạn.
-     * - Kiểm tra sessionId trong Redis
-     * - Kiểm tra hạn của refreshToken
-     * - Tạo accessToken + refreshToken mới
-     * - Lưu session mới vào Redis với TTL = 8 ngày
-     * - Trả về LoginResponse chứa token mới và thông tin user
+     * PRODUCTION-GRADE REFRESH TOKEN IMPLEMENTATION
+     * 
+     * Security measures:
+     * 1. Validates JWT signature of refreshToken
+     * 2. Verifies hashed refreshToken matches Redis
+     * 3. Checks session expiry
+     * 4. Implements refresh token rotation (prevents replay attacks)
+     * 5. Invalidates old refresh token immediately
+     * 6. Multi-device support via sessionId
+     * 
+     * Flow:
+     * - Client sends: sessionId cookie + refreshToken cookie
+     * - Server validates both credentials
+     * - Generates new accessToken + new refreshToken
+     * - Rotates refreshToken in Redis
+     * - Returns new tokens via cookies
      */
     @Override
-    public LoginResponse refreshToken(UUID sessionId) {
-        UUID newSessionId = UUID.randomUUID();
-
+    public LoginResponse refreshToken(UUID sessionId, String refreshToken) {
         try {
-            // Check sessionId exists in redis
+            // Step 1: Validate JWT signature and structure
+            if (!jwtTokenProvider.validateToken(refreshToken)) {
+                redisTemplate.delete(sessionId.toString());
+                throw new BusinessException(MessageCode.INVALID_TOKEN);
+            }
+
+            // Step 2: Retrieve session from Redis
             SessionInfo sessionInfo = (SessionInfo) redisTemplate.opsForValue().get(sessionId.toString());
             if (sessionInfo == null) {
                 throw new BusinessException(MessageCode.SESSION_NOT_FOUND);
             }
 
-            // Check if refreshToken still valid
+            // Step 3: Verify session expiry
             if (sessionInfo.expiry().before(new Date())) {
                 redisTemplate.delete(sessionId.toString());
                 throw new BusinessException(MessageCode.SESSION_EXPIRED);
             }
 
-            // Create new accessToken and refreshToken
+            // Step 4: Hash incoming refreshToken and compare with stored hash
+            String hashedRefreshToken = jwtTokenProvider.hashToken(refreshToken);
+            if (!hashedRefreshToken.equals(sessionInfo.hashedRefreshToken())) {
+                // Potential replay attack - invalidate session immediately
+                redisTemplate.delete(sessionId.toString());
+                throw new BusinessException(MessageCode.INVALID_TOKEN);
+            }
+
+            // Step 5: Generate new tokens (rotation)
             Authentication authentication = new UsernamePasswordAuthenticationToken(
                     sessionInfo.userId().toString(), null, null
             );
-            String username = sessionInfo.username();
-            String newAccessToken = jwtTokenProvider.generateToken(authentication, newSessionId, username);
-            String newRefreshToken = jwtTokenProvider.generateRefreshToken(sessionInfo.userId().toString(), newSessionId);
 
-            // Create expiry date (8 days)
-            Date expiry = new Date(System.currentTimeMillis() + 8L * 24 * 60 * 60 * 1000);
-            // Create new SessionInfo object
-            sessionInfo = new SessionInfo(sessionInfo.userId(), sessionInfo.username(), newRefreshToken, expiry, sessionInfo.device(), sessionInfo.ipAddress());
-            // Save new session in Redis
-            redisTemplate.opsForValue().set(newSessionId.toString(), sessionInfo, 8, TimeUnit.DAYS);
+            String newAccessToken = jwtTokenProvider.generateToken(authentication, sessionId, sessionInfo.username());
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(sessionInfo.userId().toString(), sessionId);
 
-            // Delete old sessionId
-            redisTemplate.delete(sessionId.toString());
+            // Step 6: Update session with new hashed refresh token
+            Date newExpiry = new Date(System.currentTimeMillis() + 8L * 24 * 60 * 60 * 1000);
+            String newHashedRefreshToken = jwtTokenProvider.hashToken(newRefreshToken);
+            
+            SessionInfo updatedSessionInfo = new SessionInfo(
+                sessionInfo.userId(), 
+                sessionInfo.username(), 
+                newHashedRefreshToken,
+                newExpiry, 
+                sessionInfo.device(), 
+                sessionInfo.ipAddress(),
+                sessionInfo.createdAt()
+            );
+            
+            // Step 7: Atomically update Redis (old refresh token is now invalid)
+            redisTemplate.opsForValue().set(sessionId.toString(), updatedSessionInfo, 8, TimeUnit.DAYS);
 
+            // Step 8: Prepare response
             UserInfoResponse userInfo = sysUserService.getUserDetail(sessionInfo.userId());
             List<String> permissions = sysPermissionService.getPermissionInfoByUserId(sessionInfo.userId());
 
-            return new LoginResponse(newAccessToken, userInfo, permissions, newSessionId);
+            return new LoginResponse(newAccessToken, userInfo, permissions, sessionId, newRefreshToken);
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
+            log.error("REFRESH TOKEN ERROR", e);
             throw new BusinessException(MessageCode.LOGIN_FAIL);
         }
     }
@@ -214,6 +251,10 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String authHeader, UUID sessionId) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new BusinessException(MessageCode.INVALID_TOKEN);
+        }
+
+        if (sessionId == null) {
+            throw new BusinessException(MessageCode.SESSION_NOT_FOUND);
         }
 
         String accessToken = authHeader.substring(7);
@@ -235,7 +276,7 @@ public class AuthServiceImpl implements AuthService {
             blackListedTokenRepository.save(blacklistedToken);
         }
 
-        // Delete session from Redis
+        // Delete session from Redis (invalidates refresh token)
         redisTemplate.delete(sessionId.toString());
     }
 

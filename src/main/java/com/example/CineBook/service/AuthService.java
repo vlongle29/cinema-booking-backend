@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface AuthService {
     RegisterResponse register(RegisterRequest request);
     LoginResponse login(LoginRequest request, String device, String ipAddress);
-    LoginResponse refreshToken(UUID sessionId);
+    LoginResponse refreshToken(UUID sessionId, String refreshToken);
     void logout(String accessToken, UUID sessionId);
     UserInfoResponse getCurrentUser();
 }
