@@ -1,0 +1,268 @@
+@startuml CineBook Class Diagram
+
+' Styling
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor<<Entity>> LightYellow
+    BorderColor Black
+    ArrowColor Black
+}
+
+' Core Entities
+class City <<Entity>> {
+    - name: String
+    - code: String
+}
+
+class Branch <<Entity>> {
+    - name: String
+    - address: String
+}
+
+class Position <<Entity>> {
+    - code: String
+    - name: String
+    - description: String
+}
+
+class SysUser <<Entity>> {
+    - username: String
+    - password: String
+    - name: String
+    - email: String
+    - phone: String
+    - avatar: String
+    - lockFlag: String
+    - providerId: String
+    - failedLoginAttempts: Integer
+    - typeAccount: String
+    - systemFlag: String
+}
+
+class Customer <<Entity>> {
+    - dateOfBirth: LocalDate
+    - gender: GenderEnum
+    - address: String
+    - city: String
+    - membershipLevel: MembershipLevelEnum
+    - loyaltyPoints: Integer
+}
+
+class Employee <<Entity>> {
+    - employeeCode: String
+    - salary: BigDecimal
+    - hireDate: LocalDate
+}
+
+class Room <<Entity>> {
+    - name: String
+    - capacity: Integer
+    - type: RoomType
+    - openTime: LocalTime
+    - closeTime: LocalTime
+}
+
+class SeatType <<Entity>> {
+    - code: String
+    - name: String
+    - basePrice: BigDecimal
+    - description: String
+}
+
+class Seat <<Entity>> {
+    - rowChar: String
+    - seatNumber: Integer
+    - status: SeatStatus
+}
+
+class Movie <<Entity>> {
+    - title: String
+    - description: String
+    - director: String
+    - cast: String
+    - durationMinutes: Integer
+    - releaseDate: LocalDate
+    - posterUrl: String
+    - trailerUrl: String
+    - language: String
+    - rated: AgeRating
+    - status: MovieStatus
+}
+
+class Genre <<Entity>> {
+    - name: String
+    - description: String
+}
+
+class MovieGenre <<Entity>> {
+}
+
+class Showtime <<Entity>> {
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - basePrice: BigDecimal
+    - format: MovieFormat
+    - status: ShowtimeStatus
+}
+
+class Promotion <<Entity>> {
+    - code: String
+    - name: String
+    - discountType: DiscountType
+    - discountValue: BigDecimal
+    - startDate: LocalDateTime
+    - endDate: LocalDateTime
+    - minOrderValue: BigDecimal
+    - usageLimit: Integer
+}
+
+class Booking <<Entity>> {
+    - bookingCode: String
+    - totalTicketPrice: BigDecimal
+    - totalFoodPrice: BigDecimal
+    - discountAmount: BigDecimal
+    - finalAmount: BigDecimal
+    - bookingDate: LocalDateTime
+    - expiredAt: LocalDateTime
+    - status: BookingStatus
+    - paymentMethod: PaymentMethod
+    - cancellationReason: String
+    - cancelledAt: LocalDateTime
+    - refundAmount: BigDecimal
+    - refundDate: LocalDateTime
+    - refundReason: String
+    - refundTransactionNo: String
+}
+
+class Ticket <<Entity>> {
+    - price: BigDecimal
+    - ticketCode: String
+    - qrCodeUrl: String
+    - isCheckedIn: Boolean
+}
+
+class Product <<Entity>> {
+    - name: String
+    - description: String
+    - price: BigDecimal
+    - imageUrl: String
+    - category: ProductCategory
+    - isActive: Boolean
+}
+
+class BookingProduct <<Entity>> {
+    - quantity: Integer
+    - priceAtPurchase: BigDecimal
+}
+
+class Transaction <<Entity>> {
+    - transactionCode: String
+    - paymentGateway: String
+    - amount: BigDecimal
+    - status: TransactionStatus
+    - transactionTime: LocalDateTime
+    - rawResponseData: String
+}
+
+class SysRole <<Entity>> {
+    - name: String
+    - code: String
+    - description: String
+    - systemFlag: String
+    - priority: Integer
+}
+
+class SysPermission <<Entity>> {
+    - permission: String
+    - code: String
+    - description: String
+    - systemFlag: String
+}
+
+class SysUserRole <<Entity>> {
+}
+
+class SysRolePermission <<Entity>> {
+}
+
+' Relationships
+
+' City - Branch (1-N)
+City "1" -- "0..*" Branch : contains
+
+' Branch - Room (1-N)
+Branch "1" -- "0..*" Room : has
+
+' Branch - Employee (1-N)
+Branch "1" -- "0..*" Employee : employs
+
+' Branch - Showtime (1-N)
+Branch "1" -- "0..*" Showtime : hosts
+
+' Branch - Manager (1-1)
+Branch "0..*" -- "0..1" Employee : managed by
+
+' Position - Employee (1-N)
+Position "1" -- "0..*" Employee : assigned to
+
+' SysUser - Customer (1-1)
+SysUser "1" -- "0..1" Customer : profile
+
+' SysUser - Employee (1-1)
+SysUser "1" -- "0..1" Employee : profile
+
+' Room - Seat (1-N)
+Room "1" -- "0..*" Seat : contains
+
+' SeatType - Seat (1-N)
+SeatType "1" -- "0..*" Seat : categorizes
+
+' Movie - Genre (N-N via MovieGenre)
+Movie "0..*" -- "0..*" MovieGenre
+MovieGenre "0..*" -- "0..*" Genre
+
+' Movie - Showtime (1-N)
+Movie "1" -- "0..*" Showtime : screened in
+
+' Room - Showtime (1-N)
+Room "1" -- "0..*" Showtime : scheduled in
+
+' Customer - Booking (1-N)
+Customer "0..1" -- "0..*" Booking : makes
+
+' Employee - Booking (1-N)
+Employee "0..1" -- "0..*" Booking : processes
+
+' Showtime - Booking (1-N)
+Showtime "1" -- "0..*" Booking : booked for
+
+' Promotion - Booking (1-N)
+Promotion "0..1" -- "0..*" Booking : applied to
+
+' Booking - Ticket (1-N)
+Booking "1" -- "1..*" Ticket : includes
+
+' Seat - Ticket (1-N)
+Seat "1" -- "0..*" Ticket : reserved by
+
+' Showtime - Ticket (1-N)
+Showtime "1" -- "0..*" Ticket : issued for
+
+' Booking - BookingProduct (1-N)
+Booking "1" -- "0..*" BookingProduct : contains
+
+' Product - BookingProduct (1-N)
+Product "1" -- "0..*" BookingProduct : ordered in
+
+' Booking - Transaction (1-N)
+Booking "1" -- "0..*" Transaction : paid via
+
+' SysUser - SysUserRole (1-N)
+SysUser "1" -- "0..*" SysUserRole
+SysUserRole "0..*" -- "1" SysRole
+
+' SysRole - SysRolePermission (1-N)
+SysRole "1" -- "0..*" SysRolePermission
+SysRolePermission "0..*" -- "1" SysPermission
+
+@enduml

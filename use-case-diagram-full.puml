@@ -1,0 +1,137 @@
+@startuml CineBook Use Case Diagram - Full Version
+
+left to right direction
+skinparam packageStyle rectangle
+
+' Actors
+actor "Khách hàng\n(Customer)" as Customer
+actor "Nhân viên\n(Employee)" as Employee
+actor "Quản lý\nChi nhánh\n(Admin)" as Admin
+actor "Quản trị viên\nCấp cao\n(SuperAdmin)" as SuperAdmin
+actor "Hệ thống\nThanh toán" as PaymentGateway
+
+rectangle "Hệ thống Đặt Vé Xem Phim - CineBook" {
+  
+  ' ========== CUSTOMER USE CASES ==========
+  package "Quản lý Tài khoản" {
+    usecase "Đăng ký" as UC1
+    usecase "Đăng nhập" as UC2
+    usecase "Đổi mật khẩu" as UC3
+    usecase "Quên mật khẩu" as UC4
+  }
+  
+  package "Quản lý Phim" {
+    usecase "Xem danh sách phim" as UC5
+    usecase "Xem chi tiết phim" as UC6
+    usecase "Lọc phim theo\nthành phố/định dạng" as UC7
+  }
+  
+  package "Đặt Vé Online" {
+    usecase "Đặt vé xem phim" as UC8
+    usecase "Chọn suất chiếu" as UC9
+    usecase "Chọn ghế ngồi" as UC10
+    usecase "Thanh toán online" as UC11
+    usecase "Nhận vé điện tử" as UC12
+  }
+  
+  package "Lịch sử Khách hàng" {
+    usecase "Xem lịch sử\nđặt vé" as UC13
+  }
+  
+  ' ========== EMPLOYEE USE CASES ==========
+  package "Chức năng Nhân viên" {
+    usecase "Bán vé tại quầy\n(CASHIER)" as UC14
+    usecase "Check-in vé\n(USHER)" as UC15
+    usecase "Quản lý lịch chiếu\n(MANAGER)" as UC16
+    usecase "Hỗ trợ khách hàng" as UC17
+  }
+  
+  ' ========== ADMIN USE CASES ==========
+  package "Quản trị Chi nhánh" {
+    usecase "Quản lý phim\n(CRUD)" as UC18
+    usecase "Quản lý rạp chiếu\n(CRUD)" as UC19
+    usecase "Quản lý lịch chiếu\n(CRUD)" as UC20
+    usecase "Quản lý template ghế\n(CRUD)" as UC21
+    usecase "Apply template\nvào phòng chiếu" as UC22
+    usecase "Quản lý User\ntrong chi nhánh" as UC23
+    usecase "Xem báo cáo\nchi nhánh" as UC24
+  }
+  
+  ' ========== SUPER ADMIN USE CASES ==========
+  package "Quản trị Hệ thống" {
+    usecase "Quản lý User\ntoàn hệ thống" as UC25
+    usecase "Quản lý Role\n(CRUD)" as UC26
+    usecase "Quản lý Permission\n(CRUD)" as UC27
+    usecase "Gán Role cho User" as UC28
+    usecase "Gán Permission\ncho Role" as UC29
+    usecase "Lock/Unlock User" as UC30
+    usecase "Reset mật khẩu User" as UC31
+    usecase "Xem báo cáo\ntổng thể" as UC32
+    usecase "Quản lý chi nhánh\n(CRUD)" as UC33
+  }
+}
+
+' ========== CUSTOMER RELATIONSHIPS ==========
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC5
+Customer --> UC8
+Customer --> UC13
+
+' Use case relationships for Customer
+UC8 .> UC9 : <<include>>
+UC8 .> UC10 : <<include>>
+UC8 .> UC11 : <<include>>
+UC11 .> UC12 : <<include>>
+UC5 .> UC6 : <<extend>>
+UC5 .> UC7 : <<extend>>
+
+' Payment Gateway
+UC11 --> PaymentGateway
+
+' ========== EMPLOYEE RELATIONSHIPS ==========
+Employee --> UC2
+Employee --> UC14
+Employee --> UC15
+Employee --> UC16
+Employee --> UC17
+
+' ========== ADMIN RELATIONSHIPS ==========
+Admin --> UC2
+Admin --> UC18
+Admin --> UC19
+Admin --> UC20
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+Admin --> UC24
+
+' Admin use case relationships
+UC22 .> UC21 : <<include>>
+
+' ========== SUPER ADMIN RELATIONSHIPS ==========
+SuperAdmin --> UC2
+SuperAdmin --> UC25
+SuperAdmin --> UC26
+SuperAdmin --> UC27
+SuperAdmin --> UC28
+SuperAdmin --> UC29
+SuperAdmin --> UC30
+SuperAdmin --> UC31
+SuperAdmin --> UC32
+SuperAdmin --> UC33
+
+' Super Admin use case relationships
+UC28 .> UC26 : <<include>>
+UC29 .> UC27 : <<include>>
+
+' ========== INHERITANCE RELATIONSHIPS ==========
+' Admin có thể làm một số việc của Employee
+Admin --|> Employee
+
+' SuperAdmin có thể làm mọi việc của Admin
+SuperAdmin --|> Admin
+
+@enduml

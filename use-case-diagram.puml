@@ -1,0 +1,73 @@
+@startuml CineBook Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Khách hàng\n(Customer)" as Customer
+actor "Quản trị viên\n(Admin)" as Admin
+actor "Hệ thống\nThanh toán" as PaymentGateway
+
+rectangle "Hệ thống Đặt Vé Xem Phim - CineBook" {
+  
+  ' Customer Use Cases
+  package "Quản lý Tài khoản" {
+    usecase "Đăng ký" as UC1
+    usecase "Đăng nhập" as UC2
+  }
+  
+  package "Quản lý Phim" {
+    usecase "Xem danh sách phim" as UC3
+    usecase "Xem chi tiết phim" as UC4
+  }
+  
+  package "Đặt Vé" {
+    usecase "Đặt vé xem phim" as UC5
+    usecase "Chọn suất chiếu" as UC6
+    usecase "Chọn ghế ngồi" as UC7
+    usecase "Thanh toán" as UC8
+    usecase "Nhận vé điện tử" as UC9
+  }
+  
+  package "Lịch sử" {
+    usecase "Xem lịch sử đặt vé" as UC10
+  }
+  
+  ' Admin Use Cases
+  package "Quản trị Hệ thống" {
+    usecase "Quản lý phim\n(CRUD)" as UC11
+    usecase "Quản lý rạp chiếu\n(CRUD)" as UC12
+    usecase "Quản lý lịch chiếu\n(CRUD)" as UC13
+    usecase "Quản lý người dùng" as UC14
+    usecase "Xem báo cáo\ndoanh thu" as UC15
+  }
+}
+
+' Customer relationships
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC5
+Customer --> UC10
+
+' Use case relationships (include)
+UC5 .> UC6 : <<include>>
+UC5 .> UC7 : <<include>>
+UC5 .> UC8 : <<include>>
+UC8 .> UC9 : <<include>>
+
+' Extend relationship
+UC3 .> UC4 : <<extend>>
+
+' Admin relationships
+Admin --> UC2
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+Admin --> UC15
+
+' Payment Gateway
+UC8 --> PaymentGateway
+
+@enduml
