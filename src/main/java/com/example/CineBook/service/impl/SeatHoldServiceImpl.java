@@ -6,11 +6,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import com.example.CineBook.common.constant.BookingStatus;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
+import com.example.CineBook.common.security.SecurityUtils;
 import com.example.CineBook.common.util.RedisLuaScripts;
-import com.example.CineBook.dto.seat.SeatHoldData;
-import com.example.CineBook.dto.seat.SeatHoldRequest;
+import com.example.CineBook.dto.seat.*;
 import com.example.CineBook.model.Booking;
+import com.example.CineBook.model.Customer;
 import com.example.CineBook.repository.irepository.BookingRepository;
+import com.example.CineBook.repository.irepository.CustomerRepository;
 import com.example.CineBook.repository.irepository.TicketRepository;
 import com.example.CineBook.service.SeatHoldService;
 import com.example.CineBook.websocket.service.SeatWebSocketService;
@@ -27,6 +29,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.example.CineBook.common.util.RedisLuaScripts.DEBUG_SEAT_SCRIPT;
 
@@ -38,17 +41,27 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final TicketRepository ticketRepository;
     private final BookingRepository bookingRepository;
+    private final CustomerRepository customerRepository;
     private final SeatWebSocketService seatWebSocketService;
     private final StringRedisTemplate stringRedisTemplate;
 
     private static final int HOLD_EXPIRATION_MINUTES = 15;
+    private static final int PRE_HOLD_EXPIRATION_MINUTES = 5;
     private static final String SEAT_HOLD_KEY = "seat:hold:%s:%s"; // showtime:seat
     private static final String BOOKING_HOLDS_KEY = "booking:holds:%s"; // bookingId
 
     @Override
     public void holdSeats(UUID bookingId, SeatHoldRequest request) {
-        if (!bookingRepository.existsById(bookingId)) {
-            throw new BusinessException(MessageCode.BOOKING_NOT_FOUND);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+        
+        // Smart handling: If expired, throw specific error for frontend to handle
+        if (booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new BusinessException(MessageCode.BOOKING_EXPIRED);
+        }
+        
+        if (booking.getStatus() != BookingStatus.DRAFT) {
+            throw new BusinessException(MessageCode.BOOKING_NOT_IN_DRAFT_STATUS);
         }
 
         UUID seatId = request.getSeatId();
@@ -110,8 +123,27 @@ public class SeatHoldServiceImpl implements SeatHoldService {
 //        }
 //    }
 
+    /**
+     * 1	delete thành công (release ghế)
+     * 0	bookingId không khớp
+     * -1	key không tồn tại
+     * -2	JSON decode lỗi
+     * -3	không có bookingId
+     */
     @Override
     public void releaseSeat(UUID bookingId, UUID showtimeId, UUID seatId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
+        
+        // Smart handling: If expired, throw specific error for frontend to handle
+        if (booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new BusinessException(MessageCode.BOOKING_EXPIRED);
+        }
+        
+        if (booking.getStatus() != BookingStatus.DRAFT) {
+            throw new BusinessException(MessageCode.BOOKING_NOT_IN_DRAFT_STATUS);
+        }
+        
         String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
 
         String debugInfo = stringRedisTemplate.execute(
@@ -212,37 +244,38 @@ public class SeatHoldServiceImpl implements SeatHoldService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
 
-        // Idempotency guard
-//        if (booking.getStatus() != BookingStatus.DRAFT) {
-//            return;
-//        }
+        // Idempotency guard - don't release if already processed
+        if (booking.getStatus() != BookingStatus.DRAFT) {
+            return;
+        }
 
-        // Update DB first
+        // Get holds before clearing for WebSocket notification
+        List<SeatHoldData> holds = getHoldsByBooking(bookingId);
+
+        // Update DB first - mark as EXPIRED
         booking.setStatus(BookingStatus.EXPIRED);
         bookingRepository.save(booking);
 
-        String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
-        log.info("Releasing seats for booking key: {}", bookingKey);
-
-        // SNAPSHOT before LUA run (Logic này của bạn OK để phục vụ WebSocket notify)
-        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
-        log.info("Snapshot hold keys: {}", holdKeysSnapshot);
-
-        Map<String, SeatHoldData> cachedSeats = new HashMap<>();
-
-        if (holdKeysSnapshot != null) {
-            for (Object holdKeyObj : holdKeysSnapshot) {
-                log.info("Processing hold key: {}", holdKeyObj);
-                String holdKey = (String) holdKeyObj;
-                // Lưu ý: Dùng try-catch chỗ này nếu sợ redis lỗi null/format, nhưng cơ bản là ổn
-                SeatHoldData data = (SeatHoldData) redisTemplate.opsForValue().get(holdKey);
-                if (data != null) {
-                    cachedSeats.put(holdKey, data);
-                }
-            }
+        // Clear holds from Redis
+        clearHolds(bookingId);
+        
+        // Notify WebSocket
+        for (SeatHoldData hold : holds) {
+            seatWebSocketService.notifySeatReleased(
+                    hold.getShowtimeId(),
+                    hold.getSeatId()
+            );
         }
+    }
 
-        // GỌI SCRIPT ĐÃ FIX
+    @Override
+    public void clearHolds(UUID bookingId) {
+        String bookingKey = String.format(BOOKING_HOLDS_KEY, bookingId);
+
+        // SNAPSHOT before LUA run
+        Set<Object> holdKeysSnapshot = redisTemplate.opsForSet().members(bookingKey);
+
+        // Clear holds from Redis
         // inputBookingId sẽ được Lua "tẩy rửa" sạch sẽ nên không sợ dấu " hay khoảng trắng nữa
         Long released = redisTemplate.execute(
                 RedisLuaScripts.RELEASE_BOOKING_SCRIPT,
@@ -250,20 +283,8 @@ public class SeatHoldServiceImpl implements SeatHoldService {
                 bookingId.toString()
         );
 
-        log.info("Lua script release result: {}", released);
-
-        if (released != null && released > 0) {
-            // Chỉ notify những ghế thực sự release thành công (hoặc notify tất cả trong snapshot cũng được)
-            for (SeatHoldData seat : cachedSeats.values()) {
-                if (seat != null) {
-                    seatWebSocketService.notifySeatReleased(
-                            seat.getShowtimeId(),
-                            seat.getSeatId()
-                    );
-                }
-            }
-        }
-        log.info("Released {} seats for booking {}", released, bookingId);
+        log.info("Lua script clear result: {}", released);
+        log.info("Cleared {} holds for booking {}", released, bookingId);
     }
 
     public List<SeatHoldData> getHoldsByBooking(UUID bookingId) {
@@ -280,5 +301,152 @@ public class SeatHoldServiceImpl implements SeatHoldService {
             }
         }
         return holds;
+    }
+
+    @Override
+    public SeatAvailabilityResponse checkAvailability(SeatAvailabilityRequest request) {
+        List<UUID> availableSeats = new ArrayList<>();
+        List<UUID> unavailableSeats = new ArrayList<>();
+
+        for (UUID seatId : request.getSeatIds()) {
+            // Check DB (permanent booking)
+            boolean booked = ticketRepository.existsBySeatIdAndShowtimeId(seatId, request.getShowtimeId());
+            
+            // Check Redis (temporary hold)
+            String holdKey = String.format(SEAT_HOLD_KEY, request.getShowtimeId(), seatId);
+            boolean held = Boolean.TRUE.equals(redisTemplate.hasKey(holdKey));
+
+            if (booked || held) {
+                unavailableSeats.add(seatId);
+            } else {
+                availableSeats.add(seatId);
+            }
+        }
+
+        boolean allAvailable = unavailableSeats.isEmpty();
+        String message = allAvailable 
+            ? "Tất cả ghế đều có sẵn" 
+            : String.format("%d/%d ghế không khả dụng", unavailableSeats.size(), request.getSeatIds().size());
+
+        return SeatAvailabilityResponse.builder()
+                .allAvailable(allAvailable)
+                .availableSeats(availableSeats)
+                .unavailableSeats(unavailableSeats)
+                .message(message)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public SeatPreHoldResponse preHoldSeats(SeatPreHoldRequest request) {
+        // Get current user
+        UUID userId = SecurityUtils.getCurrentUserId();
+        UUID customerId = null;
+
+        if (!SecurityUtils.hasRole("ADMIN")) {
+            customerId = customerRepository.findByUserId(userId)
+                    .map(Customer::getId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        }
+
+        // Create temporary draft booking
+        Booking tempBooking = Booking.builder()
+                .customerId(customerId)
+                .showtimeId(request.getShowtimeId())
+                .status(BookingStatus.DRAFT)
+                .bookingDate(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusMinutes(PRE_HOLD_EXPIRATION_MINUTES))
+                .totalTicketPrice(java.math.BigDecimal.ZERO)
+                .totalFoodPrice(java.math.BigDecimal.ZERO)
+                .discountAmount(java.math.BigDecimal.ZERO)
+                .finalAmount(java.math.BigDecimal.ZERO)
+                .build();
+
+        Booking savedBooking = bookingRepository.save(tempBooking);
+        UUID tempBookingId = savedBooking.getId();
+
+        List<UUID> successfullyHeld = new ArrayList<>();
+        List<UUID> failedSeats = new ArrayList<>();
+
+        // Try to hold each seat
+        for (UUID seatId : request.getSeatIds()) {
+            try {
+                // Check if already booked in DB
+                boolean booked = ticketRepository.existsBySeatIdAndShowtimeId(seatId, request.getShowtimeId());
+                if (booked) {
+                    failedSeats.add(seatId);
+                    continue;
+                }
+
+                String holdKey = String.format(SEAT_HOLD_KEY, request.getShowtimeId(), seatId);
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime expiresAt = now.plusMinutes(PRE_HOLD_EXPIRATION_MINUTES);
+
+                SeatHoldData holdData = SeatHoldData.builder()
+                        .seatId(seatId)
+                        .showtimeId(request.getShowtimeId())
+                        .bookingId(tempBookingId)
+                        .heldAt(now)
+                        .expiresAt(expiresAt)
+                        .build();
+
+                Boolean success = redisTemplate.opsForValue().setIfAbsent(
+                    holdKey, 
+                    holdData, 
+                    PRE_HOLD_EXPIRATION_MINUTES, 
+                    TimeUnit.MINUTES
+                );
+
+                if (Boolean.TRUE.equals(success)) {
+                    // Track in booking holds
+                    String bookingKey = String.format(BOOKING_HOLDS_KEY, tempBookingId);
+                    redisTemplate.opsForSet().add(bookingKey, holdKey);
+                    redisTemplate.expire(bookingKey, PRE_HOLD_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+
+                    // Broadcast WebSocket
+                    seatWebSocketService.notifySeatSelected(
+                        request.getShowtimeId(), 
+                        seatId, 
+                        tempBookingId, 
+                        expiresAt
+                    );
+
+                    successfullyHeld.add(seatId);
+                    log.info("Pre-held seat {} for temp booking {}", seatId, tempBookingId);
+                } else {
+                    failedSeats.add(seatId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to pre-hold seat {}", seatId, e);
+                failedSeats.add(seatId);
+            }
+        }
+
+        // If no seats were held, delete the temp booking and throw error
+        if (successfullyHeld.isEmpty()) {
+            bookingRepository.delete(savedBooking);
+            throw new BusinessException(MessageCode.SEAT_ALREADY_HELD);
+        }
+
+        // If some seats failed, release successful holds and throw error
+        if (!failedSeats.isEmpty()) {
+            clearHolds(tempBookingId);
+            bookingRepository.delete(savedBooking);
+            throw new BusinessException(MessageCode.SEAT_ALREADY_HELD);
+        }
+
+        return SeatPreHoldResponse.builder()
+                .tempBookingId(tempBookingId)
+                .showtimeId(request.getShowtimeId())
+                .heldSeatIds(successfullyHeld)
+                .expiresAt(savedBooking.getExpiredAt())
+                .message("Đã giữ ghế tạm thời. Vui lòng hoàn tất thanh toán trong " + PRE_HOLD_EXPIRATION_MINUTES + " phút.")
+                .build();
+    }
+
+    @Override
+    public boolean isSeatHeld(UUID seatId, UUID showtimeId) {
+        String holdKey = String.format(SEAT_HOLD_KEY, showtimeId, seatId);
+        return Boolean.TRUE.equals(redisTemplate.hasKey(holdKey));
     }
 }

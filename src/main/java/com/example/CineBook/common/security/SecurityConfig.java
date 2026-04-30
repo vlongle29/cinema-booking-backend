@@ -38,6 +38,10 @@ public class SecurityConfig {
             "/api/auth/logout",
             "/api/auth/refresh-token",
             "/api/users/reset-password-user",
+            "/api/showtimes/available-dates",
+            "/api/showtimes/available-cities",
+            "/api/showtimes/available-formats",
+            "/api/showtimes/grouped-by-branch",
             "/api/payments/vn-pay-callback",
             // Thêm các dòng này để cho phép truy cập Swagger
             "/swagger-ui/**",
@@ -92,9 +96,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "https://*.trycloudflare.com"));
+        config.setAllowedOrigins(List.of("http://localhost:5173", "https://*.trycloudflare.com"));
 
-        // Http methods allowed
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
 
         // Headers allowed to be sent from the client

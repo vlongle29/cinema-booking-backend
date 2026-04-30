@@ -21,6 +21,8 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableRedisRepositories(basePackages = "com.example.CineBook.repository.redis")
@@ -35,7 +37,7 @@ public class RedisConfig {
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.registerModule(new JavaTimeModule()); // Hỗ trợ Java 8 Date/Time API (LocalDate, LocalDateTime, Instant, v.v.)
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // Good practice
         return objectMapper;
     }
@@ -64,14 +66,46 @@ public class RedisConfig {
     public CacheManager cacheManager(RedisConnectionFactory redisConnectionFactory, @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
         Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(redisObjectMapper, Object.class);
 
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10)) // TTL 10 phút
+        // Dùng @Qualifier để chọn đúng bean redisObjectMapper
+
+        // Default cache configuration - TTL 10 phút
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)
                 );
 
+        // Custom cache configurations với TTL khác nhau
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        
+        // Movie caches - TTL 1 giờ (dữ liệu ít thay đổi)
+        cacheConfigurations.put("movies", defaultConfig.entryTtl(Duration.ofHours(1)));
+        cacheConfigurations.put("movies:now-showing", defaultConfig.entryTtl(Duration.ofHours(1)));
+        cacheConfigurations.put("movies:coming-soon", defaultConfig.entryTtl(Duration.ofHours(1)));
+        
+        // Branch cache - TTL 2 giờ
+        cacheConfigurations.put("branchCache", defaultConfig.entryTtl(Duration.ofHours(2)));
+        
+        // Room & Seat caches - TTL 1 giờ
+        cacheConfigurations.put("rooms", defaultConfig.entryTtl(Duration.ofHours(1)));
+        cacheConfigurations.put("rooms:seats", defaultConfig.entryTtl(Duration.ofHours(1)));
+        cacheConfigurations.put("rooms:by-branch", defaultConfig.entryTtl(Duration.ofHours(1)));
+        
+        // Seat Type caches - TTL 12 giờ
+        cacheConfigurations.put("seat-types", defaultConfig.entryTtl(Duration.ofHours(12)));
+        
+        // Product caches - TTL 30 phút
+        cacheConfigurations.put("products", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("products:all", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("products:by-category", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        
+        // Promotion caches - TTL 15 phút
+        cacheConfigurations.put("promotions", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        cacheConfigurations.put("promotions:active", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+
         return RedisCacheManager.builder(redisConnectionFactory)
-                .cacheDefaults(config)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
     }
 

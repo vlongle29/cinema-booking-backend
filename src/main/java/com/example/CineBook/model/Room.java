@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import jakarta.persistence.metamodel.StaticMetamodel;
 import lombok.*;
 
+import java.time.LocalTime;
 import java.util.UUID;
 
 @StaticMetamodel(Room.class)
@@ -38,4 +39,10 @@ public class Room extends AuditingEntity {
     @Enumerated(EnumType.STRING)
     @Column
     private RoomType type;
+
+    @Column(name = "open_time")
+    private LocalTime openTime;
+
+    @Column(name = "close_time")
+    private LocalTime closeTime;
 }

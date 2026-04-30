@@ -29,4 +29,6 @@ public class UserCreateRequest {
     private String systemFlag;
     @NotEmpty(message = "{ROLES_REQUIRED}")
     private List<UUID> roleIds;
+    @NotEmpty(message = "{BRANCH_REQUIRED}")
+    private  UUID branchId;
 }

@@ -15,9 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,6 +30,12 @@ public class CityServiceImpl implements CityService {
 
     private final CityRepository cityRepository;
     private final CityMapper cityMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String CITY_CACHE_KEY = "cityCache:";
+    private static final String ALL_CITIES_KEY = "cities:all";
+    private static final String SEARCH_CACHE_KEY = "cities:search:";
+    private static final Duration CACHE_TTL = Duration.ofHours(24);
 
     @Override
     @Transactional
@@ -38,30 +46,65 @@ public class CityServiceImpl implements CityService {
 
         City city = cityMapper.toEntity(request);
         City saved = cityRepository.save(city);
+        
+        redisTemplate.delete(ALL_CITIES_KEY);
+        
         return cityMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CityResponse> getAllCities() {
-        return cityRepository.findAll().stream()
+        @SuppressWarnings("unchecked")
+        List<CityResponse> cached = (List<CityResponse>) redisTemplate.opsForValue().get(ALL_CITIES_KEY);
+        
+        if (cached != null) {
+            return cached;
+        }
+        
+        List<CityResponse> cities = cityRepository.findAll().stream()
                 .filter(city -> !Boolean.TRUE.equals(city.getIsDelete()))
                 .map(cityMapper::toResponse)
                 .collect(Collectors.toList());
+        
+        if (!cities.isEmpty()) {
+            redisTemplate.opsForValue().set(ALL_CITIES_KEY, cities, CACHE_TTL);
+        }
+        
+        return cities;
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<CityResponse> searchCities(CitySearchDTO searchDTO) {
+        String cacheKey = SEARCH_CACHE_KEY + searchDTO.hashCode();
+        @SuppressWarnings("unchecked")
+        PageResponse<CityResponse> cached = (PageResponse<CityResponse>) redisTemplate.opsForValue().get(cacheKey);
+        
+        if (cached != null) {
+            return cached;
+        }
+        
         Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
         Page<City> entityPage = cityRepository.searchWithFilters(searchDTO, pageable);
         Page<CityResponse> responsePage = entityPage.map(cityMapper::toResponse);
-        return PageResponse.of(responsePage);
+        PageResponse<CityResponse> result = PageResponse.of(responsePage);
+        
+        redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL);
+        
+        return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public CityResponse getCityById(UUID id) {
+        String cacheKey = CITY_CACHE_KEY + id;
+        CityResponse cached = (CityResponse) redisTemplate.opsForValue().get(cacheKey);
+        
+        if (cached != null) {
+            return cached;
+        }
+        
         City city = cityRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MessageCode.CITY_NOT_FOUND));
         
@@ -69,7 +112,10 @@ public class CityServiceImpl implements CityService {
             throw new BusinessException(MessageCode.CITY_NOT_FOUND);
         }
         
-        return cityMapper.toResponse(city);
+        CityResponse response = cityMapper.toResponse(city);
+        redisTemplate.opsForValue().set(cacheKey, response, CACHE_TTL);
+        
+        return response;
     }
 
     @Override
@@ -86,6 +132,11 @@ public class CityServiceImpl implements CityService {
 
         cityMapper.updateEntityFromDto(request, city);
         City updated = cityRepository.save(city);
+        
+        redisTemplate.delete(CITY_CACHE_KEY + id);
+        redisTemplate.delete(ALL_CITIES_KEY);
+        clearSearchCache();
+        
         return cityMapper.toResponse(updated);
     }
 
@@ -97,5 +148,13 @@ public class CityServiceImpl implements CityService {
         }
 
         cityRepository.softDeleteById(id);
+        
+        redisTemplate.delete(CITY_CACHE_KEY + id);
+        redisTemplate.delete(ALL_CITIES_KEY);
+        clearSearchCache();
+    }
+
+    private void clearSearchCache() {
+        redisTemplate.keys(SEARCH_CACHE_KEY + "*").forEach(redisTemplate::delete);
     }
 }

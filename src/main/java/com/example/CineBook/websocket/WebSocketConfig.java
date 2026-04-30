@@ -7,6 +7,11 @@ import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
+/**
+ * Cấu hình WebSocket cho ứng dụng.
+ * - Đăng ký handler cho endpoint /ws/booking
+ * - Thêm interceptor để xác thực token JWT khi kết nối WebSocket
+ */
 @Configuration
 @EnableWebSocket
 @RequiredArgsConstructor
@@ -22,3 +27,5 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .setAllowedOrigins("*"); // Production: chỉ định domain cụ thể;
     }
 }
+
+

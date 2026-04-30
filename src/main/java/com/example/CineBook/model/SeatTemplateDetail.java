@@ -22,6 +22,12 @@ public class SeatTemplateDetail extends AuditingEntity {
     @Column(name = "row_char", nullable = false, length = 2)
     private String rowChar;
 
+    @Column(name = "row_index", nullable = false)
+    private Integer rowIndex;
+
+    @Column(name = "column_index", nullable = false)
+    private Integer columnIndex;
+
     @Column(name = "seat_num", nullable = false)
     private Integer seatNum;
 

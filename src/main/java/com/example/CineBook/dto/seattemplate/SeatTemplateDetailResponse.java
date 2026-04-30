@@ -16,6 +16,8 @@ public class SeatTemplateDetailResponse {
     private UUID id;
     private String seatNumber;
     private String rowChar;
+    private Integer rowIndex;
+    private Integer columnIndex;
     private Integer seatNum;
     private UUID seatTypeId;
     private SeatTypeResponse seatType;

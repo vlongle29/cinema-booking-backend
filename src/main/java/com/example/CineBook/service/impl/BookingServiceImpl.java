@@ -131,7 +131,7 @@ public class BookingServiceImpl implements BookingService {
                     .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
         }
 
-        // Validate all seats exist
+        // Validate all seats exist and check availability
         for (UUID seatId : request.getSeatIds()) {
             Seat seat = seatRepository.findById(seatId)
                     .orElseThrow(() -> new BusinessException(MessageCode.SEAT_NOT_FOUND));
@@ -140,6 +140,12 @@ public class BookingServiceImpl implements BookingService {
             boolean alreadyBooked = ticketRepository.existsBySeatIdAndShowtimeId(seatId, request.getShowtimeId());
             if (alreadyBooked) {
                 throw new BusinessException(MessageCode.SEAT_ALREADY_BOOKED);
+            }
+            
+            // Check if seat already held in Redis
+            boolean alreadyHeld = seatHoldService.isSeatHeld(seatId, request.getShowtimeId());
+            if (alreadyHeld) {
+                throw new BusinessException(MessageCode.SEAT_ALREADY_HELD);
             }
         }
 
@@ -176,6 +182,9 @@ public class BookingServiceImpl implements BookingService {
                         .seatId(seatId)
                         .showtimeId(request.getShowtimeId())
                         .build());
+
+                    // Broadcast SEAT_SELECTED to WebSocket subscribers
+                seatWebSocketService.notifySeatSelected(savedBooking.getShowtimeId() , seatId, bookingId, savedBooking.getExpiredAt());
             } catch (BusinessException e) {
                 // If any seat fails to hold, release all previously held seats and delete booking
                 seatHoldService.clearHolds(bookingId);
@@ -504,16 +513,23 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(MessageCode.SHOWTIME_ALREADY_STARTED);
         }
 
+        // TODO: Delete all products selected
+
         // Release all held seats
         seatHoldService.releaseSeats(bookingId);
 
         // Get all tickets and notify via WebSocket
         List<Ticket> tickets = ticketRepository.findByBookingId(bookingId);
-        for (Ticket ticket : tickets) {
-            seatWebSocketService.notifySeatReleased(
-                    ticket.getShowtimeId(),
-                    ticket.getSeatId()
-            );
+        if (!tickets.isEmpty()) {
+            ticketRepository.deleteByBookingId(bookingId);
+
+            // Notify WebSocket
+            for (Ticket ticket : tickets) {
+                seatWebSocketService.notifySeatReleased(
+                        ticket.getShowtimeId(),
+                        ticket.getSeatId()
+                );
+            }
         }
 
         // Update booking status

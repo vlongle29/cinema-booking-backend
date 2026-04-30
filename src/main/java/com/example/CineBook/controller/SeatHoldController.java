@@ -20,8 +20,10 @@ public class SeatHoldController {
 
     private final SeatHoldService seatHoldService;
 
+    @Deprecated(since = "2.0", forRemoval = true)
     @PostMapping("/hold")
-    @Operation(summary = "Giữ ghế", description = "Giữ ghế cho booking trong thời gian nhất định")
+    @Operation(summary = "Giữ ghế", description = "Giữ ghế cho booking trong thời gian nhất định -> [DEPRECATED] Giữ ghế - Sử dụng /api/booking/confirm thay thế",
+    deprecated = true)
     public ResponseEntity<ApiResponse<Void>> holdSeats(
             @Parameter(description = "ID của booking") @PathVariable UUID bookingId,
             @RequestBody SeatHoldRequest request) {

@@ -18,7 +18,7 @@ public interface ShowtimeService {
     
     List<LocalDate> getAvailableDates(UUID movieId);
     List<CityResponse> getAvailableCities(UUID movieId, LocalDate date);
-    List<MovieFormat> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId);
+    List<FormatsResponse> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId);
     List<ShowtimeGroupedByBranchResponse> getShowtimesGroupedByBranch(UUID movieId, LocalDate date, UUID cityId, MovieFormat format);
     
     // Seat availability
@@ -27,4 +27,10 @@ public interface ShowtimeService {
     // Bulk create
     RoomShowtimeResponse getShowtimesByRoom(UUID roomId, LocalDate startDate, LocalDate endDate);
     BulkCreateShowtimeResponse bulkCreateShowtimes(BulkCreateShowtimeRequest request);
+    
+    // Available slots
+    List<String> getAvailableTimeSlots(UUID roomId, UUID movieId, LocalDate date);
+    
+    // Batch create
+    BatchCreateShowtimeResponse batchCreateShowtimes(BatchCreateShowtimeRequest request);
 }

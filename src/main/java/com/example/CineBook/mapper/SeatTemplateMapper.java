@@ -22,6 +22,8 @@ public interface SeatTemplateMapper {
 
     @Mapping(target = "templateId", source = "templateId")
     @Mapping(target = "rowChar", qualifiedByName = "extractRowChar", source = "request.seatNumber")
+    @Mapping(target = "rowIndex", qualifiedByName = "extractRowIndex", source = "request.seatNumber")
+    @Mapping(target = "columnIndex", qualifiedByName = "extractColumnIndex", source = "request.seatNumber")
     @Mapping(target = "seatNum", qualifiedByName = "extractSeatNumber", source = "request.seatNumber")
     @Mapping(target = "seatTypeId", source = "request.seatTypeId")
     @Mapping(target = "isAisle", source = "request.isAisle")
@@ -30,6 +32,8 @@ public interface SeatTemplateMapper {
     @Mapping(target = "id", source = "detail.id")
     @Mapping(target = "seatNumber", expression = "java(combineSeatNumber(detail))")
     @Mapping(target = "rowChar", source = "detail.rowChar")
+    @Mapping(target = "rowIndex", source = "detail.rowIndex")
+    @Mapping(target = "columnIndex", source = "detail.columnIndex")
     @Mapping(target = "seatNum", source = "detail.seatNum")
     @Mapping(target = "seatTypeId", source = "detail.seatTypeId")
     @Mapping(target = "isAisle", source = "detail.isAisle")
@@ -43,6 +47,20 @@ public interface SeatTemplateMapper {
     @Named("extractRowChar")
     default String extractRowChar(String seatNumber) {
         return seatNumber.replaceAll("[0-9]", "");
+    }
+
+    @Named("extractRowIndex")
+    default Integer extractRowIndex(String seatNumber) {
+        // Convert A->0, B->1, C->2, etc.
+        String rowChar = seatNumber.replaceAll("[0-9]", "");
+        return rowChar.charAt(0) - 'A';
+    }
+
+    @Named("extractColumnIndex")
+    default Integer extractColumnIndex(String seatNumber) {
+        // Extract number and convert to 0-based index
+        Integer seatNum = Integer.parseInt(seatNumber.replaceAll("[^0-9]", ""));
+        return seatNum - 1;
     }
 
     @Named("extractSeatNumber")

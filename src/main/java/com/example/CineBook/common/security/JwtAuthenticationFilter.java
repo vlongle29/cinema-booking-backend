@@ -63,6 +63,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return false;
     }
 
+    /**
+     * Filter method to validate JWT token and set authentication in the security context.
+     * @param request
+     * @param response
+     * @param filterChain
+     * @throws IOException
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -71,13 +78,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // Get jwt from request
             String jwt = getJwtFromRequest(request);
-            // Get username from jwt
-            String username = jwtTokenProvider.getUsernameFromJWT(jwt);
 
             // Only perform validation and authentication if there is a JWT and the SecurityContext is empty.
             if (StringUtils.hasText(jwt) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (jwtTokenProvider.validateToken(jwt) && !blackListedTokenRepository.existsByAccessToken(jwt)) {
-                    // Now, getUserIdFromJWT return a string UUID
+                    // Get username and userId from jwt
+                    String username = jwtTokenProvider.getUsernameFromJWT(jwt);
                     String userIdStr = jwtTokenProvider.getUserIdFromJWT(jwt);
                     UUID userId = UUID.fromString(userIdStr);
 

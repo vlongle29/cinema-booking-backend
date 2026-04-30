@@ -10,6 +10,8 @@ import com.example.CineBook.repository.irepository.SeatRepository;
 import com.example.CineBook.repository.irepository.SeatTypeRepository;
 import com.example.CineBook.service.SeatTypeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class SeatTypeServiceImpl implements SeatTypeService {
     private final SeatRepository seatRepository;
     private final SeatTypeMapper seatTypeMapper;
     
+    @CacheEvict(value = "seat-types", allEntries = true)
     @Override
     @Transactional
     public SeatTypeResponse create(SeatTypeRequest request) {
@@ -37,6 +40,7 @@ public class SeatTypeServiceImpl implements SeatTypeService {
         return seatTypeMapper.toResponse(saved);
     }
     
+    @CacheEvict(value = "seat-types", allEntries = true)
     @Override
     @Transactional
     public SeatTypeResponse update(UUID id, SeatTypeRequest request) {
@@ -53,6 +57,7 @@ public class SeatTypeServiceImpl implements SeatTypeService {
         return seatTypeMapper.toResponse(updated);
     }
     
+    @Cacheable(value = "seat-types", key = "#id")
     @Override
     @Transactional(readOnly = true)
     public SeatTypeResponse getById(UUID id) {
@@ -61,6 +66,7 @@ public class SeatTypeServiceImpl implements SeatTypeService {
         return seatTypeMapper.toResponse(seatType);
     }
     
+    @Cacheable(value = "seat-types", key = "'all'")
     @Override
     @Transactional(readOnly = true)
     public List<SeatTypeResponse> getAll() {
@@ -69,6 +75,7 @@ public class SeatTypeServiceImpl implements SeatTypeService {
                 .collect(Collectors.toList());
     }
     
+    @CacheEvict(value = "seat-types", allEntries = true)
     @Override
     @Transactional
     public void delete(UUID id) {

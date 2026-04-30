@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -200,12 +201,13 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         
         // Soft delete
         showtime.setDeleted(DelFlag.DELETED.getValue());
+        showtime.setStatus(ShowtimeStatus.CLOSED);
     }
     
     private ShowtimeResponse buildShowtimeResponse(Showtime showtime) {
         ShowtimeResponse response = showtimeMapper.toResponse(showtime);
         response.setStatus(showtime.getStatus() != null ? showtime.getStatus().name() : null);
-        
+
         // Load movie
         movieRepository.findById(showtime.getMovieId()).ifPresent(movie -> {
             if (!Boolean.TRUE.equals(movie.getIsDelete())) {
@@ -252,8 +254,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     
     @Override
     @Transactional(readOnly = true)
-    public List<MovieFormat> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId) {
-        return showtimeRepository.findAvailableFormatsByMovieAndCityAndDate(movieId, cityId, date);
+    public List<FormatsResponse> getAvailableFormats(UUID movieId, LocalDate date, UUID cityId) {
+        List<MovieFormat> formats = showtimeRepository.findAvailableFormatsByMovieAndCityAndDate(movieId, cityId, date);
+        return formats.stream()
+            .map(format -> FormatsResponse.builder()
+                .format(format)
+                .displayName(format.getDisplayName())
+                .build())
+            .collect(Collectors.toList());
     }
     
     @Override
@@ -298,6 +306,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                             .showtimeId(showtime.getId())
                             .startTime(showtime.getStartTime())
                             .format(showtime.getFormat())
+                            .roomId(showtime.getRoomId())
                             .roomName(room != null ? room.getName() : "Unknown")
                             .availableSeats(room != null ? room.getCapacity() : 0)
                             .build();
@@ -463,7 +472,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                     continue;
                 }
                 
-                // Create showtime
+//              Create showtime
                 Showtime showtime = Showtime.builder()
                     .movieId(request.getMovieId())
                     .roomId(request.getRoomId())
@@ -510,20 +519,16 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         // Get room info
         Room room = roomRepository.findById(showtime.getRoomId())
             .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
-        log.info("Getting seat status for showtime {} in room {}", showtimeId, room.getId());
-
 
         // Get all seats in room
         List<Seat> seats = seatRepository.findByRoomId(room.getId());
-        log.info("Total seats in room {}: {}", room.getId(), seats.size());
         
         // Get booked seats (tickets in DB)
         List<Ticket> bookedTickets = ticketRepository.findByShowtimeId(showtimeId);
-        log.info("Total booked tickets for showtime {}: {}", showtimeId, bookedTickets.size());
         Set<UUID> bookedSeatIds = bookedTickets.stream()
             .map(Ticket::getSeatId)
             .collect(Collectors.toSet());
-        log.info("Total booked seat IDs for showtime {}: {}", showtimeId, bookedSeatIds.size());
+
         
         // Get held seats from Redis
         Map<UUID, UUID> heldSeats = new HashMap<>(); // seatId -> bookingId
@@ -601,5 +606,138 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             this.start = start;
             this.end = end;
         }
+    }
+
+    /**
+     * Lấy danh sách khung giờ có thể tạo suất chiếu mới cho phòng và ngày đã chọn,
+     * đảm bảo không trùng với các suất chiếu đã tồn tại và nằm trong khoảng thời gian mở cửa của phòng
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> getAvailableTimeSlots(UUID roomId, UUID movieId, LocalDate date) {
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(room.getIsDelete())) {
+            throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
+        }
+        
+        if (room.getOpenTime() == null || room.getCloseTime() == null) {
+            throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
+        }
+        
+        Movie movie = movieRepository.findById(movieId)
+            .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(movie.getIsDelete())) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        if (movie.getDurationMinutes() == null || movie.getDurationMinutes() <= 0) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        int buffer = 15;
+        int totalDuration = movie.getDurationMinutes() + buffer;
+        
+        List<Showtime> existingShowtimes = showtimeRepository.findActiveShowtimesByRoomAndDate(roomId, date);
+        
+        List<String> availableSlots = new ArrayList<>();
+        LocalTime  currentTime = room.getOpenTime();
+        
+        while (currentTime.plusMinutes(totalDuration).isBefore(room.getCloseTime()) 
+               || currentTime.plusMinutes(totalDuration).equals(room.getCloseTime())) {
+            
+            LocalDateTime slotStart = LocalDateTime.of(date, currentTime);
+            LocalDateTime slotEnd = slotStart.plusMinutes(totalDuration);
+            
+            boolean hasConflict = existingShowtimes.stream()
+                .anyMatch(s -> isOverlapping(s.getStartTime(), s.getEndTime(), slotStart, slotEnd));
+            
+            if (!hasConflict) {
+                availableSlots.add(currentTime.toString());
+            }
+            
+            currentTime = currentTime.plusMinutes(30);
+        }
+        
+        return availableSlots;
+    }
+
+    /**
+     * Tạo hàng loạt suất chiếu cho một phim trong một khoảng ngày và các khung giờ đã chọn,
+     * đảm bảo không tạo các suất chiếu trùng lặp hoặc vượt quá giới hạn số lượng trong một lần tạo
+     */
+    @Override
+    @Transactional
+    public BatchCreateShowtimeResponse batchCreateShowtimes(BatchCreateShowtimeRequest request) {
+        Movie movie = movieRepository.findById(request.getMovieId())
+            .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(movie.getIsDelete())) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        if (movie.getDurationMinutes() == null || movie.getDurationMinutes() <= 0) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+        
+        Room room = roomRepository.findById(request.getRoomId())
+            .orElseThrow(() -> new BusinessException(MessageCode.ROOM_NOT_FOUND));
+        
+        if (Boolean.TRUE.equals(room.getIsDelete())) {
+            throw new BusinessException(MessageCode.ROOM_NOT_FOUND);
+        }
+        
+        int buffer = 15;
+        BigDecimal price = request.getFormat() == MovieFormat.TWO_D
+            ? new BigDecimal("100000")
+            : new BigDecimal("120000");
+        
+        List<CreatedShowtimeItem> created = new ArrayList<>();
+        List<RejectedShowtimeItem> rejected = new ArrayList<>();
+        
+        for (String timeStr : request.getTimes()) {
+            try {
+                LocalTime time = LocalTime.parse(timeStr);
+                LocalDateTime startTime = LocalDateTime.of(request.getDate(), time);
+                LocalDateTime endTime = startTime.plusMinutes(movie.getDurationMinutes()).plusMinutes(buffer);
+                
+                List<Showtime> overlapping = showtimeRepository.findOverlappingShowtimes(
+                    request.getRoomId(),
+                    startTime,
+                    endTime
+                );
+                
+                if (!overlapping.isEmpty()) {
+                    rejected.add(new RejectedShowtimeItem(timeStr, "Time slot overlaps with existing showtime"));
+                    continue;
+                }
+                
+                Showtime showtime = Showtime.builder()
+                    .movieId(request.getMovieId())
+                    .roomId(request.getRoomId())
+                    .branchId(room.getBranchId())
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .basePrice(price)
+                    .format(request.getFormat())
+                    .status(ShowtimeStatus.OPEN)
+                    .build();
+                
+                Showtime saved = showtimeRepository.save(showtime);
+                created.add(new CreatedShowtimeItem(
+                    saved.getId(),
+                    timeStr,
+                    saved.getStartTime().toString(),
+                    saved.getEndTime().toString()
+                ));
+                
+            } catch (Exception e) {
+                rejected.add(new RejectedShowtimeItem(timeStr, "Invalid time format or error: " + e.getMessage()));
+            }
+        }
+        
+        return new BatchCreateShowtimeResponse(created, rejected);
     }
 }

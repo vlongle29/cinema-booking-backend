@@ -19,10 +19,12 @@ public interface SeatMapper {
 
     @Mapping(target = "id", source = "seat.id")
     @Mapping(target = "seatNumber", expression = "java(combineSeatNumber(seat))")
+    @Mapping(target = "rowChar", source = "seat.rowChar")
+    @Mapping(target = "rowIndex", source = "seat.rowIndex")
+    @Mapping(target = "columnIndex", source = "seat.columnIndex")
     @Mapping(target = "seatTypeId", source = "seat.seatTypeId")
     @Mapping(target = "roomId", source = "seat.roomId")
     @Mapping(target = "seatType", source = "seatType")
-//    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     SeatResponse toResponse(Seat seat, SeatType seatType);
 
     @Mapping(target = "rowChar", expression = "java(extractRowChar(request.getSeatNumber()))")

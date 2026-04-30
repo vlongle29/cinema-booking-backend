@@ -1,8 +1,8 @@
 package com.example.CineBook.controller;
 
 import com.example.CineBook.common.response.ApiResponse;
-import com.example.CineBook.dto.seat.CreateSeatsRequest;
-import com.example.CineBook.dto.seat.SeatResponse;
+import com.example.CineBook.dto.seat.*;
+import com.example.CineBook.service.SeatHoldService;
 import com.example.CineBook.service.SeatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +22,7 @@ import java.util.UUID;
 public class SeatController {
 
     private final SeatService seatService;
+    private final SeatHoldService seatHoldService;
 
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
@@ -43,5 +44,28 @@ public class SeatController {
     public ResponseEntity<ApiResponse<Void>> deleteAllSeatsByRoom(@PathVariable UUID roomId) {
         seatService.deleteAllSeatsByRoom(roomId);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PostMapping("/check-availability")
+    @Operation(
+        summary = "Kiểm tra ghế có available không (Bước 1: User chọn ghế)",
+        description = "Check ghế có bị hold hoặc booked chưa. Gọi khi user click chọn ghế để validate real-time."
+    )
+    public ResponseEntity<ApiResponse<SeatAvailabilityResponse>> checkAvailability(
+            @Valid @RequestBody SeatAvailabilityRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(seatHoldService.checkAvailability(request)));
+    }
+
+    @PostMapping("/pre-hold")
+    @Operation(
+        summary = "Hold ghế tạm thời trước khi sang trang thanh toán (Bước 2: User bấm 'Tiếp tục')",
+        description = "Tạo draft booking và hold ghế trong 5 phút. Gọi khi user bấm nút 'Tiếp tục' để sang trang thanh toán."
+    )
+    public ResponseEntity<ApiResponse<SeatPreHoldResponse>> preHoldSeats(
+            @Valid @RequestBody SeatPreHoldRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+            "Đã giữ ghế tạm thời", 
+            seatHoldService.preHoldSeats(request)
+        ));
     }
 }

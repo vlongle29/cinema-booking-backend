@@ -82,7 +82,7 @@ public class ShowtimeController {
     
     @GetMapping("/available-formats")
     @Operation(summary = "Lấy danh sách format có sẵn theo phim, ngày và thành phố")
-    public ResponseEntity<ApiResponse<List<MovieFormat>>> getAvailableFormats(
+    public ResponseEntity<ApiResponse<List<FormatsResponse>>> getAvailableFormats(
             @RequestParam UUID movieId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam UUID cityId) {
@@ -127,5 +127,14 @@ public class ShowtimeController {
             @Valid @RequestBody BulkCreateShowtimeRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
             showtimeService.bulkCreateShowtimes(request)));
+    }
+    
+    @PostMapping("/batch")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Operation(summary = "Tạo nhiều suất chiếu cùng lúc với xử lý conflict")
+    public ResponseEntity<ApiResponse<BatchCreateShowtimeResponse>> batchCreateShowtimes(
+            @Valid @RequestBody BatchCreateShowtimeRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+            showtimeService.batchCreateShowtimes(request)));
     }
 }

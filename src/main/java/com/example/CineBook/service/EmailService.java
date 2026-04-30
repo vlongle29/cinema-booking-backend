@@ -18,13 +18,14 @@ public interface EmailService {
      * Send booking confirmation email after successful payment
      * @param to Customer email
      * @param bookingId Booking ID
+     * @param bookingCode Booking code for QR generation
      * @param movieTitle Movie title
      * @param showtimeDate Showtime date and time
-     * @param seats List of seat numbers
+     * @param seatNames List of seat names (e.g., A1, A2)
      * @param totalAmount Total amount paid
      */
-    void sendBookingConfirmationEmail(String to, UUID bookingId, String movieTitle, 
-                                     LocalDateTime showtimeDate, List<String> seats, BigDecimal totalAmount);
+    void sendBookingConfirmationEmail(String to, UUID bookingId, String bookingCode, String movieTitle, 
+                                     LocalDateTime showtimeDate, List<String> seatNames, BigDecimal totalAmount);
     
     /**
      * Send refund confirmation email

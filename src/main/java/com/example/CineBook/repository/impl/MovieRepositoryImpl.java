@@ -29,7 +29,9 @@ public class MovieRepositoryImpl implements MovieRepositoryCustom {
     @Override
     public Page<Movie> searchWithFilters(MovieSearchDTO searchDTO, Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        //SELECT * FROM movie
         CriteriaQuery<Movie> query = cb.createQuery(Movie.class);
+        // Xác định bảng chính (FROM) là Movie
         Root<Movie> movie = query.from(Movie.class);
 
         List<Predicate> predicates = buildPredicates(cb, movie, query, searchDTO);
@@ -76,8 +78,6 @@ public class MovieRepositoryImpl implements MovieRepositoryCustom {
             } else if ("COMING_SOON".equals(searchDTO.getStatus())) {
                 // Not shown yet: releaseDate > today
                 predicates.add(cb.greaterThan(movie.get(Movie_.releaseDate), LocalDate.now()));
-                // There will be no showtime in the future
-                predicates.add(cb.equal(showtimeSub, 0L));
             } else {
                 // For other statuses (ENDED), use movie.status field
                 predicates.add(cb.equal(movie.get(Movie_.status), searchDTO.getStatus()));
@@ -107,3 +107,73 @@ public class MovieRepositoryImpl implements MovieRepositoryCustom {
         return entityManager.createQuery(countQuery).getSingleResult();
     }
 }
+
+
+/** * Lưu ý:
+ * - Dùng Criteria API để xây dựng truy vấn động dựa trên các filter trong MovieSearchDTO
+ * - Phân trang bằng setFirstResult và setMaxResults
+ * - Đếm tổng số bản ghi phù hợp với filter để trả về PageImpl
+ * - Sắp xếp mặc định theo releaseDate giảm dần
+ * - Kiểm tra trạng thái "SHOWING" và "COMING_SOON" bằng subquery đếm số showtime trong tương lai
+ * - Chỉ lấy những movie chưa bị xóa (isDelete = false)
+ * - Có thể mở rộng thêm filter khác (genre, director, rating...) bằng cách thêm vào MovieSearchDTO và buildPredicates()
+ *
+ * SQL tương đương:
+ * SELECT *
+ * FROM movie m
+ * WHERE m.is_delete = false
+ *
+ * -- keyword
+ * AND (
+ *     :keyword IS NULL
+ *     OR LOWER(m.title) LIKE CONCAT('%', LOWER(:keyword), '%')
+ * )
+ *
+ * -- status logic
+ * AND (
+ *     :status IS NULL
+ *
+ *     OR (
+ *         :status = 'SHOWING'
+ *         AND (
+ *             SELECT COUNT(*)
+ *             FROM showtime st
+ *             WHERE st.movie_id = m.id
+ *               AND st.is_delete = false
+ *               AND st.start_time >= CURRENT_DATE
+ *         ) > 0
+ *     )
+ *
+ *     OR (
+ *         :status = 'COMING_SOON'
+ *         AND m.release_date > CURRENT_DATE
+ *         AND (
+ *             SELECT COUNT(*)
+ *             FROM showtime st
+ *             WHERE st.movie_id = m.id
+ *               AND st.is_delete = false
+ *               AND st.start_time >= CURRENT_DATE
+ *         ) = 0
+ *     )
+ *
+ *     OR (
+ *         :status NOT IN ('SHOWING', 'COMING_SOON')
+ *         AND m.status = :status
+ *     )
+ * )
+ *
+ * -- release date filter
+ * AND (
+ *     :releaseDateFrom IS NULL
+ *     OR m.release_date >= :releaseDateFrom
+ * )
+ *
+ * AND (
+ *     :releaseDateTo IS NULL
+ *     OR m.release_date <= :releaseDateTo
+ * )
+ *
+ * ORDER BY m.release_date DESC
+ *
+ * LIMIT :pageSize OFFSET :offset;
+ */

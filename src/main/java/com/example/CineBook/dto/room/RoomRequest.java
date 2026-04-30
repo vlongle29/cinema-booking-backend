@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -25,4 +26,8 @@ public class RoomRequest {
     
     @NotNull(message = "Chi nhánh không được để trống")
     private UUID branchId;
+    
+    private LocalTime openTime;
+    
+    private LocalTime closeTime;
 }

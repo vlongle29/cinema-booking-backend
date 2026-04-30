@@ -1,5 +1,6 @@
 package com.example.CineBook.common.security;
 
+import com.example.CineBook.model.SysUser;
 import com.example.CineBook.repository.irepository.SysUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ public class BranchSecurityHelper {
     public UUID getCurrentUserBranchId() {
         UUID userId = SecurityUtils.getCurrentUserId();
         return sysUserRepository.findById(userId)
-                .map(user -> user.getBranchId())
+                .map(SysUser::getBranchId)
                 .orElse(null);
     }
     

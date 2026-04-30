@@ -63,4 +63,14 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID>, JpaSp
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
+    
+    @Query("SELECT s FROM Showtime s WHERE s.roomId = :roomId " +
+           "AND CAST(s.startTime AS LocalDate) = :date " +
+           "AND s.status = com.example.CineBook.common.constant.ShowtimeStatus.OPEN " +
+           "AND s.isDelete = false " +
+           "ORDER BY s.startTime")
+    List<Showtime> findActiveShowtimesByRoomAndDate(
+        @Param("roomId") UUID roomId,
+        @Param("date") LocalDate date
+    );
 }

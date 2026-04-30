@@ -1,6 +1,7 @@
 package com.example.CineBook.controller;
 
 import com.example.CineBook.common.response.ApiResponse;
+import com.example.CineBook.common.security.RequirePosition;
 import com.example.CineBook.dto.seat.SeatResponse;
 import com.example.CineBook.dto.seattemplate.*;
 import com.example.CineBook.service.SeatTemplateService;
@@ -24,16 +25,18 @@ public class SeatTemplateController {
     private final SeatTemplateService seatTemplateService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Operation(summary = "Tạo mẫu ghế ngồi", description = "Tạo mẫu ghế ngồi cho phòng chiếu")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
+    @Operation(summary = "Tạo mẫu ghế ngồi", description = "Tạo mẫu ghế ngồi cho phòng chiếu - Chỉ Manager hoặc Technician")
     public ResponseEntity<ApiResponse<SeatTemplateResponse>> createSeatTemplate(
             @Valid @RequestBody CreateSeatTemplateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(seatTemplateService.createTemplate(request)));
     }
 
     @PostMapping("/{id}/seats")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Operation(summary = "Thêm ghế vào mẫu", description = "Thêm ghế vào mẫu ghế ngồi đã tạo")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
+    @Operation(summary = "Thêm ghế vào mẫu", description = "Thêm ghế vào mẫu ghế ngồi đã tạo - Chỉ Manager hoặc Technician")
     public ResponseEntity<ApiResponse<SeatTemplateResponse>> addSeatsToTemplate(
             @PathVariable UUID id,
             @Valid @RequestBody AddSeatsToTemplateRequest request) {
@@ -41,21 +44,24 @@ public class SeatTemplateController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
     @Operation(summary = "Lấy danh sách mẫu ghế ngồi", description = "Lấy tất cả mẫu ghế ngồi đã tạo")
     public ResponseEntity<ApiResponse<List<SeatTemplateResponse>>> getSeatTemplates() {
         return ResponseEntity.ok(ApiResponse.success(seatTemplateService.getAllTemplates()));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
     @Operation(summary = "Lấy chi tiết mẫu ghế ngồi", description = "Lấy chi tiết mẫu ghế ngồi theo ID")
     public ResponseEntity<ApiResponse<SeatTemplateResponse>> getSeatTemplateById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(seatTemplateService.getTemplateById(id)));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
     @Operation(summary = "Xóa mẫu ghế ngồi", description = "Xóa mẫu ghế ngồi theo ID")
     public ResponseEntity<ApiResponse<Void>> deleteSeatTemplate(@PathVariable UUID id) {
         seatTemplateService.deleteTemplate(id);
@@ -63,8 +69,9 @@ public class SeatTemplateController {
     }
 
     @PostMapping("/apply")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Operation(summary = "Áp dụng mẫu ghế vào phòng", description = "Clone tất cả ghế từ template vào phòng chiếu. Tự động gán branchId từ người dùng hiện tại")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition({"BRANCH_MANAGER"})
+    @Operation(summary = "Áp dụng mẫu ghế vào phòng", description = "Clone tất cả ghế từ template vào phòng chiếu - Chỉ Manager hoặc Technician")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> applyTemplateToRoom(
             @Valid @RequestBody ApplyTemplateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(

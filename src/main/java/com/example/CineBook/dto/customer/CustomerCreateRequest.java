@@ -13,8 +13,8 @@ public class CustomerCreateRequest {
     private String username;
 
     @NotBlank(message = "Password không được để trống")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$", 
-             message = "Password phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số")
+//    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$",
+//             message = "Password phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số")
     private String password;
 
     @NotBlank(message = "Tên không được để trống")

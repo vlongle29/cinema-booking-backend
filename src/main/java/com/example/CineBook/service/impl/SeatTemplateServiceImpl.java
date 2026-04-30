@@ -1,5 +1,6 @@
 package com.example.CineBook.service.impl;
 
+import com.example.CineBook.common.constant.SeatStatus;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.security.BranchSecurityHelper;
@@ -70,23 +71,29 @@ public class SeatTemplateServiceImpl implements SeatTemplateService {
             }
         }
 
-        // 3. Convert seats to entities
+        // 3. if before exist seats in template that delete all before add new seats
+        List<SeatTemplateDetail> existingSeats = seatTemplateDetailRepository.findByTemplateId(templateId);
+        if (!existingSeats.isEmpty()) {
+            seatTemplateDetailRepository.deleteAll(existingSeats);
+        }
+
+        // 4. Convert seats to entities
         List<SeatTemplateDetail> seatDetails = request.getSeats().stream()
                 .map(seatRequest -> seatTemplateMapper.toDetailEntity(seatRequest, templateId))
                 .toList();
 
-        // 4. Save seats
+        // 5. Save seats
         List<SeatTemplateDetail> savedSeats = seatTemplateDetailRepository.saveAll(seatDetails);
 
-        // 5. Update totalSeats in template
+        // 6. Update totalSeats in template
         long totalSeats = seatTemplateDetailRepository.countByTemplateId(templateId);
         template.setTotalSeats((int) totalSeats);
         SeatTemplate updatedTemplate = seatTemplateRepository.save(template);
 
-        // 6. Return updated template with seats
+        // 7. Return updated template with seats
         SeatTemplateResponse response = seatTemplateMapper.toResponse(updatedTemplate);
 
-        // Get seat details with seat type info
+        // 8. Get seat details with seat type info
         List<SeatTemplateDetailResponse> seatResponses = savedSeats.stream()
                 .map(detail -> {
                     SeatType seatType = seatTypeRepository.findById(detail.getSeatTypeId())
@@ -205,12 +212,17 @@ public class SeatTemplateServiceImpl implements SeatTemplateService {
 
         // 7. Clone seats from template to room with branchId
         List<Seat> newSeats = templateSeats.stream()
+                // 1. LỌC: Bỏ qua các ô đi (lối đi) để không lưu rác vào bảng Seat
+                .filter(templateSeat -> !templateSeat.getIsAisle())
                 .map(templateSeat -> Seat.builder()
                         .roomId(roomId)
                         .branchId(room.getBranchId())
                         .rowChar(templateSeat.getRowChar())
+                        .rowIndex(templateSeat.getRowIndex())
+                        .columnIndex(templateSeat.getColumnIndex())
                         .seatNumber(templateSeat.getSeatNum())
                         .seatTypeId(templateSeat.getSeatTypeId())
+                        .status(SeatStatus.AVAILABLE)
                         .build())
                 .toList();
 

@@ -36,8 +36,8 @@ public class WebSocketSessionManager {
      *
      * 4. Atomic operations: computeIfAbsent() được thực hiện atomic, đảm bảo không có
      *    race condition khi 2 thread cùng thêm session cho cùng 1 showtimeId (chen ngang)
-     * VD: Thread A: containsKey → false
-     *       ⏸️
+     * VD race condition: Thread A: containsKey → false
+     *       ⏸
      *     Thread B: containsKey → false
      *     Thread B: put(k, v2)
      *     Thread A: put(k, v1)   ← ghi đè
@@ -63,7 +63,9 @@ public class WebSocketSessionManager {
         String key = topic + ":" + id;
         CopyOnWriteArraySet<WebSocketSession> set = sessions.get(key);
         if (set != null) {
-            sessions.remove(session);
+            set.remove(session);
+
+            // if room is empty, remove the key from the Map to prevent memory leak
             if (set.isEmpty()) {
                 sessions.remove(key);
             }
@@ -76,12 +78,14 @@ public class WebSocketSessionManager {
 
     public void broadcast(String topic, UUID id, SeatStatusMessage message) {
         String key = topic + ":" + id;
+        // Get sessions subscribed to this topic and ID
         CopyOnWriteArraySet<WebSocketSession> set = sessions.get(key);
         if (set == null || set.isEmpty()) {
             log.debug("No active sessions for showtime {}", key);
             return;
         }
 
+        // Convert message to JSON
         String payload;
         try {
             payload = objectMapper.writeValueAsString(message);
@@ -91,6 +95,7 @@ public class WebSocketSessionManager {
         }
 
         TextMessage textMessage = new TextMessage(payload);
+        // Send message to all sessions in the set
         set.forEach(session -> {
             if (session.isOpen()) {
                 try {

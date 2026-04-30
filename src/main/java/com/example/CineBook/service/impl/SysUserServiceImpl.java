@@ -238,9 +238,7 @@ public class SysUserServiceImpl implements SysUserService {
                 .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
 
         UserInfoResponse userInfoResponse = userMapper.toUserInfoResponse(user);
-        log.info("Building login response for user info: {}", userInfoResponse);
         List<UserRoleProjection> userRoles = sysRolesRepository.findUserRolesByUserIds(List.of(userId));
-        log.info("Building login response for user role: {}", userRoles);
         List<RoleInfo> roles = userRoles.stream().map(r -> new RoleInfo(r.getRoleId(), r.getRoleName(), r.getRoleCode())).toList();
         userInfoResponse.setRoles(roles);
 

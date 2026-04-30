@@ -14,6 +14,8 @@ import com.example.CineBook.repository.irepository.SeatRepository;
 import com.example.CineBook.repository.irepository.SeatTypeRepository;
 import com.example.CineBook.service.SeatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class SeatServiceImpl implements SeatService {
     private final SeatTypeRepository seatTypeRepository;
     private final SeatMapper seatMapper;
 
+    @CacheEvict(value = "rooms:seats", key = "#request.roomId")
     @Override
     @Transactional
     public List<SeatResponse> createSeats(CreateSeatsRequest request) {
@@ -92,6 +95,7 @@ public class SeatServiceImpl implements SeatService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "rooms:seats", key = "#roomId")
     @Override
     public List<SeatResponse> getSeatsByRoom(UUID roomId) {
         if (!roomRepository.existsById(roomId)) {
@@ -113,6 +117,7 @@ public class SeatServiceImpl implements SeatService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "rooms:seats", key = "#roomId")
     @Override
     @Transactional
     public void deleteAllSeatsByRoom(UUID roomId) {

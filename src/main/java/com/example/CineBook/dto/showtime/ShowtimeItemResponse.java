@@ -15,6 +15,7 @@ public class  ShowtimeItemResponse {
     private UUID showtimeId;
     private LocalDateTime startTime;
     private MovieFormat format;
+    private UUID roomId;
     private String roomName;
     private Integer availableSeats;
 }

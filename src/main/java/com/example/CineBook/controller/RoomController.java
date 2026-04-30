@@ -2,6 +2,7 @@ package com.example.CineBook.controller;
 
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.response.ApiResponse;
+import com.example.CineBook.common.security.RequirePosition;
 import com.example.CineBook.dto.room.RoomRequest;
 import com.example.CineBook.dto.room.RoomResponse;
 import com.example.CineBook.dto.room.RoomSearchDTO;
@@ -91,7 +92,8 @@ public class RoomController {
     }
     
     @GetMapping("/{roomId}/available-slots")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @RequirePosition("{BRANCH_MANAGER}")
     @Operation(summary = "Lấy danh sách time slots khả dụng cho phòng và phim trong ngày")
     public ResponseEntity<ApiResponse<List<String>>> getAvailableTimeSlots(
             @PathVariable UUID roomId,

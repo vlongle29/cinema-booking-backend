@@ -18,7 +18,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @StaticMetamodel(Seat.class)
 public class Seat extends AuditingEntity {
-    
+
+    @Column(name = "branch_id", nullable = false)
+    private UUID branchId;
+
     @Column(name = "room_id", nullable = false)
     private UUID roomId;
 
@@ -27,6 +30,18 @@ public class Seat extends AuditingEntity {
      */
     @Column(name = "row_char", length = 2)
     private String rowChar;
+
+    /**
+     * Row index (0, 1, 2...). Combine them into A1, A2.
+     */
+    @Column(name = "row_index")
+    private Integer rowIndex;
+
+    /**
+     * Columns (1, 2, 3...). Combine them into A1, A2.
+     */
+    @Column(name = "column_index")
+    private Integer columnIndex;
 
     /**
      * Seat numbers (1, 2, 3...). Combine them into A1, A2.

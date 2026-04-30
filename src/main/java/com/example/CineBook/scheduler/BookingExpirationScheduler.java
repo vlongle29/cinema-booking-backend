@@ -28,7 +28,7 @@ public class BookingExpirationScheduler {
     private final SeatWebSocketService seatWebSocketService;
 
     private static final int DRAFT_EXPIRATION_CHECK_INTERVAL = 60000; // 1 minute
-    private static final int PAYMENT_TIMEOUT_CHECK_INTERVAL = 300000; // 5 minutes
+    private static final int PAYMENT_TIMEOUT_CHECK_INTERVAL = 60000; // 5 minutes
     private static final int PAYMENT_TIMEOUT_MINUTES = 30; // 30 minutes
 
     @Scheduled(fixedRate = DRAFT_EXPIRATION_CHECK_INTERVAL)

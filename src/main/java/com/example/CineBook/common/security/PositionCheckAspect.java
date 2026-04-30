@@ -43,6 +43,12 @@ public class PositionCheckAspect {
         // Lấy userId từ SecurityContext
         UUID userId = SecurityUtils.getCurrentUserId();
         
+        // Bypass position check cho SUPER_ADMIN và ADMIN
+        if (SecurityUtils.hasRole("SUPER_ADMIN") || SecurityUtils.hasRole("ADMIN")) {
+            log.debug("Bypassing position check for SUPER_ADMIN/ADMIN user: {}", userId);
+            return;
+        }
+        
         // Kiểm tra user có phải là employee không
         Employee employee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.NOT_EMPLOYEE));

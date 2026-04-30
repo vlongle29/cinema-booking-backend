@@ -11,6 +11,9 @@ import com.example.CineBook.model.Product;
 import com.example.CineBook.repository.irepository.ProductRepository;
 import com.example.CineBook.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,10 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
 
+    @Caching(evict = {
+            @CacheEvict(value = "products:all", allEntries = true),
+            @CacheEvict(value = "products:by-category", allEntries = true)
+    })
     @Override
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
@@ -35,6 +42,7 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toResponse(saved);
     }
 
+    @Cacheable(value = "products:all", key = "'list'")
     @Override
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
@@ -42,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "products:by-category", key = "#category")
     @Override
     public List<ProductResponse> getProductsByCategory(ProductCategory category) {
         return productRepository.findByCategory(category).stream()
@@ -49,6 +58,11 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", key = "#id"),
+            @CacheEvict(value = "products:all", allEntries = true),
+            @CacheEvict(value = "products:by-category", allEntries = true)
+    })
     @Override
     @Transactional
     public ProductResponse updateProduct(UUID id, ProductUpdateRequest request) {
@@ -61,6 +75,11 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toResponse(updated);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", key = "#id"),
+            @CacheEvict(value = "products:all", allEntries = true),
+            @CacheEvict(value = "products:by-category", allEntries = true)
+    })
     @Override
     @Transactional
     public void deleteProduct(UUID id) {

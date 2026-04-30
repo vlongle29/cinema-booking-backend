@@ -13,8 +13,11 @@ public class TicketResponse {
     private UUID id;
     private UUID bookingId;
     private UUID seatId;
+    private String seatName;
+    private String seatTypeName;
     private UUID showtimeId;
     private BigDecimal price;
+    private String ticketCode;
     private UUID createdBy;
     private Instant createTime;
 }

@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -43,6 +44,9 @@ public class SysUser extends AuditingEntity implements UserDetails {
     @Column(length = 10)
     @Builder.Default
     private String lockFlag = "0";
+
+    @Column(name = "branch_id", nullable = true)
+    private UUID branchId;
 
     @Column(length = 100)
     private String providerId; // Google ID, Facebook ID, etc.

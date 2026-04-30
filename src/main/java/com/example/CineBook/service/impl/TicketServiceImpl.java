@@ -5,7 +5,11 @@ import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.dto.ticket.TicketCreateRequest;
 import com.example.CineBook.dto.ticket.TicketDetailResponse;
 import com.example.CineBook.dto.ticket.TicketResponse;
+import com.example.CineBook.model.Seat;
+import com.example.CineBook.model.SeatType;
 import com.example.CineBook.model.Ticket;
+import com.example.CineBook.repository.irepository.SeatRepository;
+import com.example.CineBook.repository.irepository.SeatTypeRepository;
 import com.example.CineBook.repository.irepository.TicketRepository;
 import com.example.CineBook.service.QRCodeService;
 import com.example.CineBook.service.TicketCodeGenerator;
@@ -25,6 +29,8 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
     private final TicketCodeGenerator ticketCodeGenerator;
     private final QRCodeService qrCodeService;
+    private final SeatRepository seatRepository;
+    private final SeatTypeRepository seatTypeRepository;
 
     /**
      * @deprecated Ticket code không còn được dùng cho QR code chính.
@@ -145,12 +151,23 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private TicketResponse toResponse(Ticket ticket) {
+        Seat seat = seatRepository.findById(ticket.getSeatId())
+                .orElseThrow(() -> new BusinessException(MessageCode.SEAT_NOT_FOUND));
+        
+        SeatType seatType = seatTypeRepository.findById(seat.getSeatTypeId())
+                .orElseThrow(() -> new BusinessException(MessageCode.SEAT_TYPE_NOT_FOUND));
+        
+        String seatName = seat.getRowChar() + seat.getSeatNumber();
+        
         return TicketResponse.builder()
                 .id(ticket.getId())
                 .bookingId(ticket.getBookingId())
                 .seatId(ticket.getSeatId())
+                .seatName(seatName)
+                .seatTypeName(seatType.getName())
                 .showtimeId(ticket.getShowtimeId())
                 .price(ticket.getPrice())
+                .ticketCode(ticket.getTicketCode())
                 .createdBy(ticket.getCreateBy())
                 .createTime(ticket.getCreateTime())
                 .build();

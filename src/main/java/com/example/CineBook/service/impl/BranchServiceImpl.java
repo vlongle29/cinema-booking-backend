@@ -15,7 +15,6 @@ import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.BranchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,7 +37,7 @@ public class BranchServiceImpl implements BranchService {
     private final SysRoleRepository sysRoleRepository;
     private final CityRepository cityRepository;
 
-    @CachePut(value = "branchCache", key = "#result.id")
+    @CacheEvict(value = "branchCache", allEntries = true)
     @Override
     @Transactional
     public BranchResponse createBranch(BranchRequest request) {
@@ -59,7 +58,7 @@ public class BranchServiceImpl implements BranchService {
         return branchMapper.toResponse(branch);
     }
 
-    @CacheEvict(value = "branchCache", key = "#id")
+    @CacheEvict(value = "branchCache", allEntries = true)
     @Override
     @Transactional
     public BranchResponse updateBranch(UUID id, BranchUpdateRequest request) {
@@ -84,6 +83,7 @@ public class BranchServiceImpl implements BranchService {
         return branchMapper.toResponse(updated);
     }
 
+    @CacheEvict(value = "branchCache", allEntries = true)
     @Override
     @Transactional
     public void deleteBranch(UUID id) {
@@ -99,6 +99,7 @@ public class BranchServiceImpl implements BranchService {
         branchRepository.softDeleteById(id);
     }
 
+    @CacheEvict(value = "branchCache", allEntries = true)
     @Override
     @Transactional
     public void deleteBranchCascade(UUID id) {
@@ -142,6 +143,7 @@ public class BranchServiceImpl implements BranchService {
         return PageResponse.of(responsePage);
     }
 
+    @CacheEvict(value = "branchCache", allEntries = true)
     @Override
     @Transactional
     public BranchResponse restoreBranch(UUID id) {

@@ -76,6 +76,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .phone(request.getPhone())
                 .password(request.getPassword())
                 .roleIds(List.of(staffRole.getId()))
+                .branchId(request.getBranchId())
                 .build();
 
         // Create user (this method will also insert user_role)

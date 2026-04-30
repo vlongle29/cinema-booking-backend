@@ -2,18 +2,23 @@ package com.example.CineBook.common.security;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+@JsonTypeName("com.example.CineBook.common.security.SessionInfo")
 public record SessionInfo(
         @JsonProperty("userId") UUID userId,
         @JsonProperty("username") String username,
-        @JsonProperty("refreshToken") String refreshToken,
+        @JsonProperty("hashedRefreshToken") String hashedRefreshToken,
         @JsonProperty("expiry") Date expiry,
         @JsonProperty("device") String device,
-        @JsonProperty("ipAddress") String ipAddress
+        @JsonProperty("ipAddress") String ipAddress,
+        @JsonProperty("createdAt") Date createdAt
 ) implements Serializable {
 }
 
