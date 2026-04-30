@@ -47,7 +47,13 @@ public class BookingController {
 
     @Deprecated(since = "2.0", forRemoval = true)
     @PostMapping("/draft")
-    @Operation(summary = "Tạo draft booking (Bước 1: Chọn suất chiếu) -> [DEPRECATED] Tạo draft booking - Sử dụng /confirm thay thế", deprecated = true)
+    @Operation(
+        summary = "[DEPRECATED] Tạo draft booking - Sử dụng POST /api/booking/confirm thay thế",
+        description = "⚠️ API này đã deprecated kể từ version 2.0. " +
+                      "Vui lòng sử dụng POST /api/booking/confirm để tạo booking và hold ghế cùng lúc. " +
+                      "API này sẽ bị xóa trong version 3.0.",
+        deprecated = true
+    )
     public ResponseEntity<ApiResponse<BookingResponse>> createDraftBooking(@Valid @RequestBody BookingDraftRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo draft booking thành công", bookingService.createDraftBooking(request)));
@@ -63,7 +69,14 @@ public class BookingController {
 
     @Deprecated(since = "2.0", forRemoval = true)
     @PostMapping("/{bookingId}/tickets/batch")
-    @Operation(summary = "Thêm nhiều vé vào booking (Bước 2: Chọn ghế) -> [DEPRECATED] Thêm nhiều vé vào booking - Sử dụng /confirm thay thế", deprecated = true)
+    @Operation(
+        summary = "[DEPRECATED] Thêm vé - API này không còn được sử dụng",
+        description = "⚠️ API này đã deprecated kể từ version 2.0. " +
+                      "Vé sẽ được tạo tự động trong quá trình checkout từ Redis holds. " +
+                      "Vui lòng sử dụng POST /api/booking/confirm để hold ghế. " +
+                      "API này sẽ bị xóa trong version 3.0.",
+        deprecated = true
+    )
     public ResponseEntity<ApiResponse<BookingResponse>> addTicketsBatch(
             @PathVariable UUID bookingId,
             @Valid @RequestBody TicketBatchRequest request) {
@@ -71,7 +84,11 @@ public class BookingController {
     }
 
     @PostMapping("/{bookingId}/products/batch")
-    @Operation(summary = "Thêm nhiều sản phẩm vào booking (Bước 3: Chọn đồ ăn)")
+    @Operation(
+        summary = "Thêm sản phẩm vào booking đã tạo",
+        description = "💡 Khuyến nghị: Gửi products cùng với POST /api/booking/confirm để giảm số lượng API calls. " +
+                      "Tuy nhiên, API này vẫn có thể dùng để thêm products sau khi đã confirm booking."
+    )
     public ResponseEntity<ApiResponse<BookingResponse>> addProductsBatch(
             @PathVariable UUID bookingId,
             @Valid @RequestBody BookingProductBatchRequest request) {
