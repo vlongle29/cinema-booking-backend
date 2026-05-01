@@ -204,8 +204,10 @@ public enum MessageCode {
     REFUND_TOO_LATE,
     BOOKING_NOT_PAID,
     BOOKING_ALREADY_REFUNDED,
-    TICKET_ALREADY_CHECKED_IN;
+    TICKET_ALREADY_CHECKED_IN,
 
+    // FIle
+    INVALID_INPUT;
     private final String message;
 
     /**

@@ -49,6 +49,8 @@ public class SecurityConfig {
             "/swagger-resources/**",
             "/webjars/**",
             "/ws/**",
+            // Cho phép truy cập file tĩnh (ảnh poster)
+            "/uploads/**",
     };
 
     @Bean

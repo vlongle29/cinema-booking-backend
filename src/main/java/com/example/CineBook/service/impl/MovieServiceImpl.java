@@ -17,6 +17,7 @@ import com.example.CineBook.model.MovieGenre;
 import com.example.CineBook.repository.irepository.GenreRepository;
 import com.example.CineBook.repository.irepository.MovieGenreRepository;
 import com.example.CineBook.repository.irepository.MovieRepository;
+import com.example.CineBook.service.FileStorageService;
 import com.example.CineBook.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -41,6 +42,7 @@ public class MovieServiceImpl implements MovieService {
     private final MovieGenreRepository movieGenreRepository;
     private final MovieMapper movieMapper;
     private final GenreMapper genreMapper;
+    private final FileStorageService fileStorageService;
 
     @Caching(evict = {
             @CacheEvict(value = "movies:now-showing", allEntries = true),
@@ -63,6 +65,15 @@ public class MovieServiceImpl implements MovieService {
 
         // Create movie
         Movie movie = movieMapper.toEntity(request);
+        
+        // Handle poster file upload
+        if (request.getPosterFile() != null && !request.getPosterFile().isEmpty()) {
+            String posterUrl = fileStorageService.storeFile(request.getPosterFile());
+            movie.setPosterUrl(posterUrl);
+        } else if (request.getPosterUrl() != null) {
+            movie.setPosterUrl(request.getPosterUrl());
+        }
+        
         movie.setStatus(MovieStatus.valueOf(request.getStatus()));
         Movie saved = movieRepository.save(movie);
 

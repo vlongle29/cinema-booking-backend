@@ -26,10 +26,11 @@ public class MovieController {
 
     private final MovieService movieService;
 
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Tạo phim mới")
-    public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody CreateMovieRequest request) {
+    public ResponseEntity<ApiResponse<MovieResponse>> createMovie(
+            @Valid @ModelAttribute CreateMovieRequest request) {
         return ResponseEntity.ok(ApiResponse.success(movieService.createMovie(request)));
     }
 

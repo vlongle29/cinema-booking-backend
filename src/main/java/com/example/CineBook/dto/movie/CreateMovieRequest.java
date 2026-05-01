@@ -1,10 +1,12 @@
 package com.example.CineBook.dto.movie;
 
+import com.example.CineBook.common.constant.AgeRating;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,9 +27,10 @@ public class CreateMovieRequest {
     
     private LocalDate releaseDate;
     private String posterUrl;
+    private MultipartFile posterFile;
     private String trailerUrl;
     private String language;
-    private String rated;
+    private AgeRating rated;
     
     @NotNull(message = "Trạng thái phim không được để trống")
     private String status;
