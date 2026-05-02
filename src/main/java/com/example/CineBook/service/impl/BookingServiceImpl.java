@@ -25,6 +25,7 @@ import com.example.CineBook.service.TicketCodeGenerator;
 import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -301,6 +302,18 @@ public class BookingServiceImpl implements BookingService {
 
         // For other statuses (PAID, CONFIRMED, etc.), cannot refresh
         throw new BusinessException(MessageCode.BOOKING_NOT_IN_DRAFT_STATUS);
+    }
+
+    /**
+     * Search bookings with pagination and filtering
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookingResponse> searchBookings(BookingSearchDTO searchDTO) {
+        Pageable pegeable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
+        Page<Booking> entityPage = bookingRepository.searchWithFilters(searchDTO, pegeable);
+        Page<BookingResponse> responsePage = entityPage.map(bookingMapper::toResponse);
+        return PageResponse.of(responsePage);
     }
 
     /**

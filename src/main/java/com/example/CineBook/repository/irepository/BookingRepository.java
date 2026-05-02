@@ -3,7 +3,9 @@ package com.example.CineBook.repository.irepository;
 import com.example.CineBook.common.constant.BookingStatus;
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.dto.booking.BookingResponse;
+import com.example.CineBook.dto.booking.BookingSearchDTO;
 import com.example.CineBook.model.Booking;
+import com.example.CineBook.repository.custom.BookingRepositoryCustom;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,7 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface BookingRepository extends JpaRepository<Booking, UUID> {
+public interface BookingRepository extends JpaRepository<Booking, UUID>, BookingRepositoryCustom {
     List<Booking> findByCustomerId(UUID customerId);
     
     Optional<Booking> findByBookingCode(String bookingCode);

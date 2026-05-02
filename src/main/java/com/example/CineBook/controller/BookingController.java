@@ -109,6 +109,12 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success("Checkout thành công", bookingService.checkout(bookingId, request)));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Tìm kiếm và lọc booking", description = "Dành cho admin - Xem tất cả booking với các tiêu chí lọc")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> searchBookings(@ModelAttribute BookingSearchDTO searchDTO) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.searchBookings(searchDTO)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Lấy thông tin booking theo ID")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable UUID id) {
