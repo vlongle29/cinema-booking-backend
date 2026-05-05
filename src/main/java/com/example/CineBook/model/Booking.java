@@ -21,6 +21,9 @@ public class Booking extends AuditingEntity {
     
     @Column(name = "customer_id")
     private UUID customerId;
+
+    @Column(name = "user_id")
+    private UUID userId;
     
     @Column(name = "staff_id")
     private UUID staffId;

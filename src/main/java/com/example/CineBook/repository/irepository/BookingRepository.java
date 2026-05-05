@@ -31,4 +31,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, Booking
     
     @Query("SELECT b FROM Booking b WHERE b.customerId = :customerId AND b.isDelete = false")
     Page<Booking> findByCustomerIdOrderByBookingDateDesc(@Param("customerId") UUID customerId, Pageable pageable);
+
+    @Query("SELECT b FROM Booking b WHERE b.userId = :userId AND b.isDelete = false")
+    Page<Booking> findByUserIdOrderByBookingDateDesc(@Param("userId") UUID userId, Pageable pageable);
 }

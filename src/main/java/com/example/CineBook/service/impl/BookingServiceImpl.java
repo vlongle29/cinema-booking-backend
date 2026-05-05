@@ -24,6 +24,7 @@ import com.example.CineBook.service.SeatHoldService;
 import com.example.CineBook.service.TicketCodeGenerator;
 import com.example.CineBook.websocket.service.SeatWebSocketService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
@@ -125,11 +127,19 @@ public class BookingServiceImpl implements BookingService {
         // Get current user
         UUID userId = SecurityUtils.getCurrentUserId();
         UUID customerId = null;
+        UUID staffId = null;
 
-        if (!SecurityUtils.hasRole("ADMIN")) {
+        if (!SecurityUtils.hasRole("SUPERADMIN") && !SecurityUtils.hasRole("ADMIN") && !SecurityUtils.hasRole("STAFF") && !SecurityUtils.hasRole("EMPLOYEE")) {
             customerId = customerRepository.findByUserId(userId)
                     .map(Customer::getId)
                     .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        }
+
+        if (SecurityUtils.hasRole("STAFF") || SecurityUtils.hasRole("EMPLOYEE")) {
+            // Assign staffId for booking created by staff/employee
+             staffId = employeeRepository.findByUserId(userId)
+                    .map(Employee::getId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
         }
 
         // Validate all seats exist and check availability
@@ -163,6 +173,8 @@ public class BookingServiceImpl implements BookingService {
         // Create draft booking
         Booking booking = Booking.builder()
                 .customerId(customerId)
+                .userId(userId)
+                .staffId(staffId)
                 .showtimeId(request.getShowtimeId())
                 .status(BookingStatus.DRAFT)
                 .bookingDate(LocalDateTime.now())
@@ -564,11 +576,19 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public PageResponse<MyBookingResponse> getMyBookings(Pageable pageable) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        UUID customerId = customerRepository.findByUserId(userId)
-                .map(Customer::getId)
-                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        UUID customerId = null;
 
-        Page<Booking> bookings = bookingRepository.findByCustomerIdOrderByBookingDateDesc(customerId, pageable);
+        Page<Booking> bookings = Page.empty();
+
+        if (!SecurityUtils.hasRole("ADMIN") && !SecurityUtils.hasRole("STAFF") && !SecurityUtils.hasRole("EMPLOYEE")) {
+            customerId = customerRepository.findByUserId(userId)
+                    .map(Customer::getId)
+                    .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+
+            bookings = bookingRepository.findByCustomerIdOrderByBookingDateDesc(customerId, pageable);
+        } else {
+            bookings = bookingRepository.findByUserIdOrderByBookingDateDesc(userId, pageable);
+        }
 
         Page<MyBookingResponse> responsePage = bookings.map(booking -> {
             Showtime showtime = showtimeRepository.findById(booking.getShowtimeId()).orElse(null);
@@ -579,24 +599,7 @@ public class BookingServiceImpl implements BookingService {
 
             int ticketCount = ticketRepository.findByBookingId(booking.getId()).size();
 
-            return MyBookingResponse.builder()
-                    .id(booking.getId())
-                    .showtimeId(booking.getShowtimeId())
-                    .showtimeStartTime(showtime != null ? showtime.getStartTime() : null)
-                    .movieTitle(movie != null ? movie.getTitle() : null)
-                    .moviePosterUrl(movie != null ? movie.getPosterUrl() : null)
-                    .branchName(branch != null ? branch.getName() : null)
-                    .roomName(room != null ? room.getName() : null)
-                    .cityName(city != null ? city.getName() : null)
-                    .ticketCount(ticketCount)
-                    .totalTicketPrice(booking.getTotalTicketPrice())
-                    .totalFoodPrice(booking.getTotalFoodPrice())
-                    .discountAmount(booking.getDiscountAmount())
-                    .finalAmount(booking.getFinalAmount())
-                    .bookingDate(booking.getBookingDate())
-                    .status(booking.getStatus())
-                    .paymentMethod(booking.getPaymentMethod())
-                    .build();
+            return bookingMapper.toMyBookingResponse(booking, showtime, movie, branch, room, city, ticketCount);
         });
 
         return PageResponse.of(responsePage);
