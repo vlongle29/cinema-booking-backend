@@ -42,6 +42,8 @@ public class SecurityConfig {
             "/api/showtimes/available-cities",
             "/api/showtimes/available-formats",
             "/api/showtimes/grouped-by-branch",
+            "/api/movies/search",
+            "/api/movies/**",
             "/api/payments/vn-pay-callback",
             // Thêm các dòng này để cho phép truy cập Swagger
             "/swagger-ui/**",
