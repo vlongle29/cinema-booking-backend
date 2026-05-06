@@ -141,7 +141,12 @@ public class PaymentServiceImpl implements PaymentService {
 //        }
 
         // Send booking confirmation email
-        sendBookingConfirmationEmail(booking);
+
+        try {
+            sendBookingConfirmationEmail(booking);
+        } catch (Exception e) {
+                log.error("Failed to send booking confirmation email for booking {}", booking.getId(), e);
+        }
     }
 
     @Override
@@ -205,12 +210,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     private void sendBookingConfirmationEmail(Booking booking) {
         try {
-            Customer customer = customerRepository.findById(booking.getCustomerId()).orElse(null);
-            if (customer == null) {
-                return;
-            }
+//            Customer customer = customerRepository.findById(booking.getCustomerId()).orElse(null);
+//            if (customer == null) {
+//                return;
+//            }
 
-            SysUser user = sysUserRepository.findById(customer.getUserId()).orElse(null);
+            SysUser user = sysUserRepository.findById(booking.getUserId()).orElse(null);
             if (user == null || user.getEmail() == null) {
                 return;
             }
