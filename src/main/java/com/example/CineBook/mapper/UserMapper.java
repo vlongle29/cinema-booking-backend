@@ -30,7 +30,11 @@ public interface UserMapper {
     UserInfoResponse toUserInfoResponse(SysUser user);
 
     default Page<UserInfoResponse> mapPageWithRoles(Page<SysUser> userPage, Map<UUID, List<RoleInfo>> rolesMap) {
-        return userPage.map(user -> toResponse(user, rolesMap));
+        return userPage.map(user -> {
+            UserInfoResponse response = toResponse(user);
+            response.setRoles(rolesMap.get(user.getId()));
+            return response;
+        });
     }
 }
 

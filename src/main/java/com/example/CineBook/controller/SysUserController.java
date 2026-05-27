@@ -48,14 +48,15 @@ public class SysUserController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @Operation(summary = "Tìm kiếm người dùng", description = "Tìm kiếm người dùng theo điều kiện và trả về danh sách người dùng có phân trang ")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<UserInfoResponse>>> searchUser(@ModelAttribute SysUserSearchDTO searchDTO) {
+        return ResponseEntity.ok(ApiResponse.success(sysUserService.searchUsers(searchDTO)));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserInfoResponse>> getUserDetail(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(sysUserService.getUserDetail(id)));
-    }
-
-    @PostMapping("/search")
-    public ResponseEntity<ApiResponse<PageResponse<UserInfoResponse>>> searchUser(@RequestBody SysUserSearchDTO searchDTO) {
-        return ResponseEntity.ok(ApiResponse.success(sysUserService.searchUsers(searchDTO)));
     }
 
     @PostMapping("/change-password")

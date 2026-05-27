@@ -2,6 +2,7 @@ package com.example.CineBook.dto.sysUser;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,8 +28,8 @@ public class UserCreateRequest {
     private String phone;
     private String avatar;
     private String systemFlag;
-    @NotEmpty(message = "{ROLES_REQUIRED}")
+    @NotNull(message = "{ROLES_REQUIRED}")
     private List<UUID> roleIds;
-    @NotEmpty(message = "{BRANCH_REQUIRED}")
+    @NotNull(message = "{BRANCH_REQUIRED}")
     private  UUID branchId;
 }
