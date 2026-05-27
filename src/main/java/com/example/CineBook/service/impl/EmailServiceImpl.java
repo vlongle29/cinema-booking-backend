@@ -71,31 +71,31 @@ public class EmailServiceImpl implements EmailService {
             
             // Generate ONE QR code for the entire booking
             String qrBase64 = qrCodeService.generateQRCodeBase64(bookingCode);
-            
+
             String htmlContent = String.format(
                     "<html><body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
                     "<div style='background-color: #e50914; padding: 20px; text-align: center;'>" +
                     "<h1 style='color: white; margin: 0;'>CineBook</h1>" +
                     "</div>" +
                     "<div style='padding: 20px; background-color: #f5f5f5;'>" +
-                    "<h2 style='color: #e50914;'>Booking Confirmation</h2>" +
-                    "<p>Dear Customer,</p>" +
-                    "<p>Your booking has been <strong style='color: #28a745;'>confirmed</strong>!</p>" +
+                    "<h2 style='color: #e50914;'>Xác nhận đơn vé</h2>" +
+                    "<p>Kính gửi khách hàng,</p>" +
+                    "<p>Đơn vé của bạn: <strong style='color: #28a745;'>Đã xác nhận</strong>!</p>" +
                     "<table style='width: 100%%; border-collapse: collapse; margin: 20px 0; background: white;'>" +
-                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Booking Code:</td><td style='padding: 12px; border: 1px solid #dee2e6; font-family: monospace; font-size: 16px; color: #e50914;'><strong>%s</strong></td></tr>" +
-                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Movie:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
-                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Showtime:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
-                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Seats:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
-                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Number of Tickets:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%d</td></tr>" +
-                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Total Amount:</td><td style='padding: 12px; border: 1px solid #dee2e6; color: #e50914; font-weight: bold;'>%,.0f VND</td></tr>" +
+                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Mã đơn :</td><td style='padding: 12px; border: 1px solid #dee2e6; font-family: monospace; font-size: 16px; color: #e50914;'><strong>%s</strong></td></tr>" +
+                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Phim:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
+                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Suất chiếu:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
+                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Ghế:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%s</td></tr>" +
+                    "<tr style='background-color: #f8f9fa;'><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Số lượng vé:</td><td style='padding: 12px; border: 1px solid #dee2e6;'>%d</td></tr>" +
+                    "<tr><td style='padding: 12px; font-weight: bold; border: 1px solid #dee2e6;'>Tổng số tiền:</td><td style='padding: 12px; border: 1px solid #dee2e6; color: #e50914; font-weight: bold;'>%,.0f VND</td></tr>" +
                     "</table>" +
-                    "<h3 style='color: #e50914; margin-top: 30px; text-align: center;'>Your E-Ticket QR Code</h3>" +
+                    "<h3 style='color: #e50914; margin-top: 30px; text-align: center;'>Mã QR vé điện tử của bạn</h3>" +
                     "<div style='text-align: center; background: white; padding: 30px; border-radius: 10px; margin: 20px 0;'>" +
                     "<p style='margin: 0 0 15px 0; font-size: 18px;'><strong>Booking Code: %s</strong></p>" +
                     "<div style='display: inline-block; padding: 20px; border: 3px solid #e50914; border-radius: 10px;'>" +
                     "<img src='data:image/png;base64,%s' alt='QR Code' style='width: 250px; height: 250px; display: block;'/>" +
                     "</div>" +
-                    "<p style='margin: 15px 0 0 0; color: #666; font-size: 14px;'>Scan this QR code at the cinema entrance</p>" +
+                    "<p style='margin: 15px 0 0 0; color: #666; font-size: 14px;'>Quét mã QR này tại lối vào rạp chiếu phim</p>" +
                     "</div>" +
                     "<div style='background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;'>" +
                     "<p style='margin: 0;'><strong>Important:</strong></p>" +
