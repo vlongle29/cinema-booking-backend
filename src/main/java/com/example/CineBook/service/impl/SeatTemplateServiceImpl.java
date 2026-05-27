@@ -12,6 +12,7 @@ import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
 import com.example.CineBook.service.SeatTemplateService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -181,6 +182,7 @@ public class SeatTemplateServiceImpl implements SeatTemplateService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "rooms:seats", key = "#roomId")
     public List<SeatResponse> applyTemplateToRoom(UUID roomId, UUID templateId) {
         // 1. Get branchId from current user
         UUID userBranchId = branchSecurityHelper.getCurrentUserBranchId();
