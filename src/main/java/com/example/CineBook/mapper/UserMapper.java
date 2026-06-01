@@ -69,3 +69,9 @@ public interface UserMapper {
  * Cảnh báo: Unmapped target property: "createdAt" in target type "User".
  * -->N ếu bạn thêm ReportingPolicy.IGNORE, MapStruct sẽ bỏ qua cảnh báo đó, giúp code sạch hơn (nhất là khi DTO và Entity không trùng field 100%).
  */
+
+/**
+ * ALWAYS → luôn check null trước khi map.
+ * IGNORE (NullValuePropertyMappingStrategy) → field null không ghi đè target.
+ * IGNORE (ReportingPolicy) → không cảnh báo các field chưa map.
+ */

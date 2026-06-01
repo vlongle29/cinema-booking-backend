@@ -36,7 +36,7 @@ public class SysUserController {
     }
 
     @Operation(summary = "Cập nhật thông tin người dùng", description = "Cập nhật thông tin user dựa trên ID trong đường dẫn.")
-    @PutMapping("/{id}")
+    @PutMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserInfoResponse>> updateUser(@PathVariable UUID userId, @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(sysUserService.updateUser(userId, request)));
     }

@@ -36,6 +36,7 @@ public class BranchServiceImpl implements BranchService {
     private final SeatRepository seatRepository;
     private final SysRoleRepository sysRoleRepository;
     private final CityRepository cityRepository;
+    private final SysUserRepository sysUserRepository;
 
     @CacheEvict(value = "branchCache", allEntries = true)
     @Override
@@ -131,7 +132,19 @@ public class BranchServiceImpl implements BranchService {
     public PageResponse<BranchResponse> searchBranches(BranchSearchDTO searchDTO) {
         Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
         Page<Branch> entityPage = branchRepository.searchWithFilters(searchDTO, pageable);
-        Page<BranchResponse> responsePage = entityPage.map(branchMapper::toResponse);
+        Page<BranchResponse> responsePage = entityPage.map(branch -> {
+            BranchResponse response = branchMapper.toResponse(branch);
+
+            if (branch.getCityId() != null) {
+                cityRepository.findById(response.getCityId()).ifPresent(city -> response.setCityName(city.getName()));
+            }
+
+            if (branch.getManagerId() != null) {
+                sysUserRepository.findById(response.getManagerId()).ifPresent(user -> response.setManagerName(user.getName()));
+            }
+            return response;
+        });
+
         return PageResponse.of(responsePage);
     }
 

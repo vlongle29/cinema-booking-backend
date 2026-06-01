@@ -20,5 +20,6 @@ public class UserUpdateRequest {
     private String typeAccount;
 //    private Instant birthday;
 //    private String language;
+    private String branchId;
     private List<UUID> roleIds;
 }

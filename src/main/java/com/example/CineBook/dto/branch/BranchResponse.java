@@ -18,7 +18,9 @@ public class BranchResponse {
     private String name;
     private String address;
     private UUID managerId;
+    private String managerName;
     private UUID cityId;
+    private String cityName;
     private Instant createTime;
     private Instant updateTime;
     private UUID updateBy;
