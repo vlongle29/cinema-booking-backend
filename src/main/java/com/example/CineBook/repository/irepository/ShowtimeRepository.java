@@ -16,6 +16,8 @@ import java.util.UUID;
 
 @Repository
 public interface ShowtimeRepository extends JpaRepository<Showtime, UUID>, JpaSpecificationExecutor<Showtime>, ShowtimeRepositoryCustom {
+    @Query("SELECT s.id FROM Showtime s WHERE s.movieId = :movieId AND s.isDelete = false")
+    List<UUID> findIdsByMovieId(@Param("movieId") UUID movieId);
     
     @Query("SELECT s FROM Showtime s WHERE s.roomId = :roomId " +
            "AND s.isDelete = false " +

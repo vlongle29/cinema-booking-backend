@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,9 +20,16 @@ public abstract class AuditingEntity implements SoftDeletable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @CreatedDate
+    @Column(name = "create_time", updatable = false)
     private Instant createTime;
+    
     private UUID createBy;
+    
+    @LastModifiedDate
+    @Column(name = "update_time")
     private Instant updateTime;
+    
     private UUID updateBy;
     private Boolean isDelete = false;
     private Instant deleteTime;

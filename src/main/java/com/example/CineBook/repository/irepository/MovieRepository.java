@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -16,6 +17,8 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, MovieReposi
     @Modifying
     @Query("UPDATE Movie m SET m.isDelete = true, m.deleteTime = CURRENT_TIMESTAMP WHERE m.id = :id")
     void softDeleteById(@Param("id") UUID id);
+
+    Optional<String> findTitleById(UUID id);
 
     boolean existsByTitle(String title);
 }

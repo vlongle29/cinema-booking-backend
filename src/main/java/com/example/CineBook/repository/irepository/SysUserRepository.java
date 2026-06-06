@@ -10,8 +10,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface SysUserRepository extends BaseRepositoryCustom<SysUser, SysUserSearchDTO>, SysUserRepositoryCustom, JpaRepository<SysUser, UUID> {
@@ -20,6 +22,9 @@ public interface SysUserRepository extends BaseRepositoryCustom<SysUser, SysUser
     Boolean existsByEmail(String email);
     Boolean existsByUsername(String username);
     Boolean existsByPhone(String phone);
+
+    @Query("SELECT u.username FROM SysUser u WHERE u.id = :id")
+    Optional<String> findUsernameById(@Param("id") UUID id);
 //    // Câu lệnh SQL tối ưu lấy tất cả trong 1 lần
 //    @Query(value = """
 //        SELECT
@@ -32,4 +37,12 @@ public interface SysUserRepository extends BaseRepositoryCustom<SysUser, SysUser
 //        WHERE ur.user_id = :userId
 //    """, nativeQuery = true)
 //    List<AuthorityProjection> findAllAuthoritiesByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT u.id as id, u.username as username FROM SysUser u WHERE u.id IN :ids")
+    List<UserUsernameProjection> findUsernamesByIds(@Param("ids") Set<UUID> ids);
+
+     interface UserUsernameProjection {
+        UUID getId();
+        String getUsername();
+    }
 }

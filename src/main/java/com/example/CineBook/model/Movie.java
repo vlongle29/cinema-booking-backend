@@ -51,4 +51,10 @@ public class Movie extends AuditingEntity {
     @Enumerated(EnumType.STRING)
     @Column
     private MovieStatus status;
+
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews")
+    private Integer totalReviews = 0;
 }

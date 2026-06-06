@@ -31,8 +31,6 @@ public enum MessageCode {
     SEAT_ALREADY_EXISTS,
     SEAT_NOT_FOUND,
 
-
-
     // Genres, Movies, Movie-Genre
     GENRE_NAME_ALREADY_EXISTS,
     GENRE_NOT_FOUND,
@@ -49,6 +47,12 @@ public enum MessageCode {
     SHOWTIME_HAS_BOOKINGS,
     SHOWTIME_BULK_LIMIT_EXCEEDED,
     SHOWTIME_INVALID_DATE_RANGE,
+
+    // Reviews
+    REVIEW_NOT_FOUND,
+    CANNOT_REVIEW_OWN_MOVIE,
+    REVIEW_ALREADY_EXISTS,
+    TICKET_REQUIRED_FOR_REVIEW,
 
 
     // Auth & User & Employee & STAFF & POSITION

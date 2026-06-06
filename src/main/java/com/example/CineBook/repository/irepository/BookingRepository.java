@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,4 +35,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, Booking
 
     @Query("SELECT b FROM Booking b WHERE b.userId = :userId AND b.isDelete = false")
     Page<Booking> findByUserIdOrderByBookingDateDesc(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END\n" +
+            "    FROM Booking b\n" +
+            "    WHERE b.userId = :userId\n" +
+            "      AND b.showtimeId IN :showtimeIds\n" +
+            "      AND b.status = :status")
+    Boolean existsByUserIdAndShowtimeIdAndStatus(@Param("userId") UUID userId, Collection<UUID> showtimeIds, @Param("status") BookingStatus status);
+
+
 }
