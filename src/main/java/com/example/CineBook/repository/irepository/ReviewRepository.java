@@ -1,14 +1,16 @@
 package com.example.CineBook.repository.irepository;
 
+import com.example.CineBook.dto.review.RatingCountDTO;
 import com.example.CineBook.model.Review;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -33,4 +35,9 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     @Modifying
     @Query("UPDATE Review r SET r.likeCount = CASE WHEN r.likeCount > 0 THEN r.likeCount - 1 ELSE 0 END WHERE r.id = :reviewId")
     void decrementLikeCount(@Param("reviewId") UUID reviewId);
+
+    // Lấy phân bố điểm đánh giá (rating distribution) cho một bộ phim
+    @Query("SELECT new com.example.CineBook.dto.review.RatingCountDTO(r.rating, COUNT(r)) " +
+           "FROM Review r WHERE r.movieId = :movieId GROUP BY r.rating")
+    List<RatingCountDTO> getRatingDistributionByMovieId(@Param("movieId") UUID movieId);
 }

@@ -5,6 +5,8 @@ import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.security.SecurityUtils;
 import com.example.CineBook.dto.review.CreateReviewRequest;
+import com.example.CineBook.dto.review.MovieRatingSummaryResponse;
+import com.example.CineBook.dto.review.RatingCountDTO;
 import com.example.CineBook.dto.review.ReviewResponse;
 import com.example.CineBook.mapper.ReviewMapper;
 import com.example.CineBook.model.Movie;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -191,5 +194,29 @@ public class ReviewServiceImpl implements ReviewService {
             reviewLikeRepository.save(newLike);
             reviewRepository.incrementLikeCount(reviewId); // Ép DB tự cộng
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MovieRatingSummaryResponse getMovieRatingSummary(UUID movieId) {
+        // 1. Kiểm tra phim tồn tại
+        if (!movieRepository.existsById(movieId)) {
+            throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
+        }
+
+        // 2. Lấy tổng số đánh giá và điểm trung bình
+        Integer totalReviews = reviewRepository.countByMovieId(movieId);
+        Double averageRating = reviewRepository.getAverageRatingByMovieId(movieId);
+        averageRating = averageRating != null ? Math.round(averageRating * 10.0) / 10.0 : 0.0; // Làm tròn đến 1 chữ số thập phân
+
+        // 3. Lấy phân bố điểm đánh giá (rating distribution)
+        List<RatingCountDTO> ratingDistribution = reviewRepository.getRatingDistributionByMovieId(movieId);
+
+        // 4. Build Response trả về UI
+        return MovieRatingSummaryResponse.builder()
+                .averageRating(averageRating)
+                .totalReviews(totalReviews)
+                .distribution(ratingDistribution)
+                .build();
     }
 }

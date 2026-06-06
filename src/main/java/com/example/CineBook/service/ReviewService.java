@@ -2,6 +2,7 @@ package com.example.CineBook.service;
 
 
 import com.example.CineBook.dto.review.CreateReviewRequest;
+import com.example.CineBook.dto.review.MovieRatingSummaryResponse;
 import com.example.CineBook.dto.review.ReviewResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,4 +15,6 @@ public interface ReviewService {
     Page<ReviewResponse> getReviewsByMovieId(UUID movieId, Pageable pageable);
     
     void toggleLike(UUID reviewId);
+
+    MovieRatingSummaryResponse getMovieRatingSummary(UUID movieId);
 }

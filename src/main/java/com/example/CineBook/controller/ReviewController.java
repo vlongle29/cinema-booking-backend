@@ -49,4 +49,10 @@ public class ReviewController {
         reviewService.toggleLike(reviewId);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @GetMapping("/movie/{movieId}/summary")
+    @Operation(summary = "Lấy tổng quan đánh giá phim", description = "Lấy tổng quan về đánh giá của một bộ phim, bao gồm điểm trung bình, tổng số đánh giá, và phân bố điểm đánh giá")
+    public ResponseEntity<ApiResponse<?>> getMovieRatingSummary(@PathVariable UUID movieId) {
+        return ResponseEntity.ok(ApiResponse.success(reviewService.getMovieRatingSummary(movieId)));
+    }
 }
