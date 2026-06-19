@@ -2,23 +2,24 @@ package com.example.CineBook.controller;
 
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.response.ApiResponse;
+import com.example.CineBook.common.util.CookieUtils;
 import com.example.CineBook.common.util.RequestUtils;
-import com.example.CineBook.dto.auth.LoginRequest;
-import com.example.CineBook.dto.auth.LoginResponse;
-import com.example.CineBook.dto.auth.RegisterRequest;
-import com.example.CineBook.dto.auth.RegisterResponse;
+import com.example.CineBook.dto.auth.*;
 import com.example.CineBook.dto.sysUser.UserInfoResponse;
 import com.example.CineBook.service.AuthService;
+import com.example.CineBook.service.GoogleOAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Authentication", description = "Các API để xác thực người dùng")
@@ -28,6 +29,14 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleOAuthService googleOAuthService;
+
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String clientId;
+    
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String redirectUri;
 
     @Operation(summary = "Đăng ký", description = "Tạo tài khoản mới.")
     @PostMapping("/register")
@@ -135,6 +144,51 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, clearSessionCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString())
                 .body(ApiResponse.success());
+    }
+
+    // API 1: Frontend gọi để lấy link chuyển hướng sang Google
+    @Operation(summary = "Lấy URL đăng nhập Google", description = "Trả về URL để chuyển hướng người dùng đến trang đăng nhập của Google.")
+    @GetMapping("/google/url")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getGoogleLoginUrl() {
+        String url = "https://accounts.google.com/o/oauth2/v2/auth?" +
+                "client_id=" + clientId +
+                "&redirect_uri=" + redirectUri +
+                "&response_type=code" +
+                "&scope=email%20profile";
+        
+        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url)));
+    }
+
+    // API 2: Frontend bắt được code từ URL và ném xuống đây
+    @PostMapping("/google/callback")
+    public ResponseEntity<ApiResponse<LoginResponse>> handleGoogleCallback(@RequestBody @Valid GoogleCodeRequestDTO request,
+                                                              @CookieValue(value = "sessionId", required = false) UUID sessionId, HttpServletRequest httpRequest) {
+        String ipAddress = RequestUtils.getClientIp(httpRequest);
+        String device = RequestUtils.getDeviceInfo(httpRequest);
+
+        LoginResponse loginResponse = googleOAuthService.authenticateAndFetchProfile(request.getCode(), device, ipAddress);
+
+        ResponseCookie sessionCookie = ResponseCookie.from("sessionId", loginResponse.getSessionId().toString())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 24 * 60 * 60) // 8 days
+                .build();
+
+        // Set refreshToken cookie (credential)
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(8 * 24 * 60 * 60) // 8 days
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success(loginResponse));
     }
 
     @Operation(summary = "Lấy thông tin người dùng hiện tại", description = "Lấy thông tin chi tiết của người dùng đã xác thực.")

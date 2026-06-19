@@ -1,10 +1,9 @@
 package com.example.CineBook.model;
 
+import com.example.CineBook.common.constant.AuthProvider;
 import com.example.CineBook.common.constant.LockFlag;
 import com.example.CineBook.model.auditing.AuditingEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.persistence.metamodel.StaticMetamodel;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,7 +25,7 @@ public class SysUser extends AuditingEntity implements UserDetails {
     @Column(length = 100, nullable = false, unique = true)
     private String username;
 
-    @Column(name = "password", length = 255, nullable = false)
+    @Column(name = "password", length = 255)
     private String password;
 
     @Column(name = "name", length = 100, nullable = false)
@@ -35,7 +34,7 @@ public class SysUser extends AuditingEntity implements UserDetails {
     @Column(length = 100, nullable = false, unique = true)
     private String email;
 
-    @Column(name = "phone", length = 20, nullable = false)
+    @Column(name = "phone", length = 20, unique = true)
     private String phone;
 
     @Column(length = 100)
@@ -61,6 +60,11 @@ public class SysUser extends AuditingEntity implements UserDetails {
     @Column(name = "system_flag", length = 20, nullable = false)
     @Builder.Default
     private String systemFlag = "1"; // To distinguish between system users and ordinary users
+
+    @Column(name = "auth_provider", length = 50, nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
