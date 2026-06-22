@@ -50,7 +50,7 @@ public class BookingController {
     @PostMapping("/draft")
     @Operation(
         summary = "[DEPRECATED] Tạo draft booking - Sử dụng POST /api/booking/confirm thay thế",
-        description = "⚠️ API này đã deprecated kể từ version 2.0. " +
+        description = "API này đã deprecated kể từ version 2.0. " +
                       "Vui lòng sử dụng POST /api/booking/confirm để tạo booking và hold ghế cùng lúc. " +
                       "API này sẽ bị xóa trong version 3.0.",
         deprecated = true
@@ -72,7 +72,7 @@ public class BookingController {
     @PostMapping("/{bookingId}/tickets/batch")
     @Operation(
         summary = "[DEPRECATED] Thêm vé - API này không còn được sử dụng",
-        description = "⚠️ API này đã deprecated kể từ version 2.0. " +
+        description = "API này đã deprecated kể từ version 2.0. " +
                       "Vé sẽ được tạo tự động trong quá trình checkout từ Redis holds. " +
                       "Vui lòng sử dụng POST /api/booking/confirm để hold ghế. " +
                       "API này sẽ bị xóa trong version 3.0.",
@@ -87,7 +87,7 @@ public class BookingController {
     @PostMapping("/{bookingId}/products/batch")
     @Operation(
         summary = "Thêm sản phẩm vào booking đã tạo",
-        description = "💡 Khuyến nghị: Gửi products cùng với POST /api/booking/confirm để giảm số lượng API calls. " +
+        description = "Khuyến nghị: Gửi products cùng với POST /api/booking/confirm để giảm số lượng API calls. " +
                       "Tuy nhiên, API này vẫn có thể dùng để thêm products sau khi đã confirm booking."
     )
     public ResponseEntity<ApiResponse<BookingResponse>> addProductsBatch(

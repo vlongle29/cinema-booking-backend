@@ -1,10 +1,12 @@
 package com.example.CineBook.repository.irepository;
 
 import com.example.CineBook.common.constant.MovieFormat;
+import com.example.CineBook.common.constant.ShowtimeStatus;
 import com.example.CineBook.model.Showtime;
 import com.example.CineBook.repository.custom.ShowtimeRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -74,5 +76,14 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID>, JpaSp
     List<Showtime> findActiveShowtimesByRoomAndDate(
         @Param("roomId") UUID roomId,
         @Param("date") LocalDate date
+    );
+    
+    @Modifying
+    @Query("UPDATE Showtime s SET s.status = :closedStatus " +
+           "WHERE s.endTime < :now AND s.status = :openStatus AND s.isDelete = false")
+    int closeExpiredShowtimes(
+        @Param("now") LocalDateTime now,
+        @Param("openStatus") ShowtimeStatus openStatus,
+        @Param("closedStatus") ShowtimeStatus closedStatus
     );
 }

@@ -33,4 +33,7 @@ public interface ShowtimeService {
     
     // Batch create
     BatchCreateShowtimeResponse batchCreateShowtimes(BatchCreateShowtimeRequest request);
+    
+    // Close expired showtimes
+    int closeExpiredShowtimes();
 }

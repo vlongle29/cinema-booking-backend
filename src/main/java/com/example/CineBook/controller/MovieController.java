@@ -46,17 +46,17 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(movieService.getMovieById(id)));
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Cập nhật phim")
     public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateMovieRequest request) {
+            @Valid @ModelAttribute UpdateMovieRequest request) {
         return ResponseEntity.ok(ApiResponse.success(movieService.updateMovie(id, request)));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Xóa phim")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID id) {
         movieService.deleteMovie(id);

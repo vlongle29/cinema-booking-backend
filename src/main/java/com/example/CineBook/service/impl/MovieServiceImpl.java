@@ -142,6 +142,16 @@ public class MovieServiceImpl implements MovieService {
             movieGenreRepository.saveAll(movieGenres);
         }
 
+        if (request.getPosterFile() != null && !request.getPosterFile().isEmpty()) {
+            String posterUrl = fileStorageService.storeFile(request.getPosterFile());
+            movie.setPosterUrl(posterUrl);
+        } else if (request.getPosterUrl() != null) {
+            movie.setPosterUrl(request.getPosterUrl());
+        }
+
+        movie.setStatus(MovieStatus.valueOf(request.getStatus()));
+        Movie saved = movieRepository.save(movie);
+
         // Update movie fields
         movieMapper.updateEntityFromDto(request, movie);
         if (request.getStatus() != null) {

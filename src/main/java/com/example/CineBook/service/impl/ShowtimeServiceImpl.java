@@ -15,6 +15,7 @@ import com.example.CineBook.mapper.RoomMapper;
 import com.example.CineBook.mapper.ShowtimeMapper;
 import com.example.CineBook.model.*;
 import com.example.CineBook.repository.irepository.*;
+import com.example.CineBook.service.MovieService;
 import com.example.CineBook.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -135,28 +136,12 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         Showtime showtime = showtimeRepository.findById(id)
             .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
         
-//        // Check if showtime is finished
-//        if (showtime.getStatus() == ShowtimeStatus.CLOSED) {
-//            throw new BusinessException(MessageCode.SHOWTIME_ALREADY_FINISHED);
-//        }
-        
-        // Validate time range if both times are provided
-        if (request.getStartTime() != null && request.getEndTime() != null) {
-            if (request.getEndTime().isBefore(request.getStartTime()) || 
-                request.getEndTime().isEqual(request.getStartTime())) {
-                throw new BusinessException(MessageCode.SHOWTIME_INVALID_TIME_RANGE);
-            }
+        if (Boolean.TRUE.equals(showtime.getIsDelete())) {
+            throw new BusinessException(MessageCode.SHOWTIME_NOT_FOUND);
         }
         
-        // Validate movie if changed
-        if (request.getMovieId() != null) {
-            Movie movie = movieRepository.findById(request.getMovieId())
-                .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
-            
-            if (Boolean.TRUE.equals(movie.getIsDelete())) {
-                throw new BusinessException(MessageCode.MOVIE_NOT_FOUND);
-            }
-        }
+        Movie movie = movieRepository.findById(request.getMovieId())
+            .orElseThrow(() -> new BusinessException(MessageCode.MOVIE_NOT_FOUND));
         
         // Validate room if changed and update branchId
         if (request.getRoomId() != null) {
@@ -170,24 +155,30 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             showtime.setBranchId(room.getBranchId());
         }
         
+        // Calculate endTime if startTime is updated
+        LocalDateTime startTime = request.getStartTime() != null ? request.getStartTime() : showtime.getStartTime();
+        int cleaningBuffer = 15;
+        LocalDateTime endTime = startTime.plusMinutes(movie.getDurationMinutes()).plusMinutes(cleaningBuffer);
+        
         // Check for overlapping showtimes if time or room changed
-        UUID roomIdToCheck = request.getRoomId() != null ? request.getRoomId() : showtime.getRoomId();
-        var startTime = request.getStartTime() != null ? request.getStartTime() : showtime.getStartTime();
-        var endTime = request.getEndTime() != null ? request.getEndTime() : showtime.getEndTime();
-        
-        List<Showtime> overlapping = showtimeRepository.findOverlappingShowtimesExcludingCurrent(
-            roomIdToCheck,
-            id,
-            startTime,
-            endTime
-        );
-        
-        if (!overlapping.isEmpty()) {
-            throw new BusinessException(MessageCode.SHOWTIME_TIME_OVERLAP);
+        if (request.getStartTime() != null || request.getRoomId() != null) {
+            UUID roomIdToCheck = request.getRoomId() != null ? request.getRoomId() : showtime.getRoomId();
+            
+            List<Showtime> overlapping = showtimeRepository.findOverlappingShowtimesExcludingCurrent(
+                roomIdToCheck,
+                id,
+                startTime,
+                endTime
+            );
+            
+            if (!overlapping.isEmpty()) {
+                throw new BusinessException(MessageCode.SHOWTIME_TIME_OVERLAP);
+            }
         }
         
         // Update showtime
         showtimeMapper.updateEntityFromDto(request, showtime);
+        showtime.setEndTime(endTime);
         Showtime updated = showtimeRepository.save(showtime);
         
         return buildShowtimeResponse(updated);
@@ -202,6 +193,13 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         // Soft delete
         showtime.setDeleted(DelFlag.DELETED.getValue());
         showtime.setStatus(ShowtimeStatus.CLOSED);
+    }
+    
+    @Override
+    @Transactional
+    public int closeExpiredShowtimes() {
+        LocalDateTime now = LocalDateTime.now();
+        return showtimeRepository.closeExpiredShowtimes(now, ShowtimeStatus.OPEN, ShowtimeStatus.CLOSED);
     }
     
     private ShowtimeResponse buildShowtimeResponse(Showtime showtime) {

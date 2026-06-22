@@ -2,6 +2,7 @@ package com.example.CineBook.dto.movie;
 
 import jakarta.validation.constraints.Min;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ public class UpdateMovieRequest {
     
     private LocalDate releaseDate;
     private String posterUrl;
+    private MultipartFile posterFile;
     private String trailerUrl;
     private String language;
     private String rated;

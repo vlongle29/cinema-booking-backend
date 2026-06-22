@@ -17,11 +17,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateShowtimeRequest {
-    
     private UUID movieId;
     private UUID roomId;
     private LocalDateTime startTime;
-    private LocalDateTime endTime;
     
     @Positive(message = "Price must be greater than 0")
     private BigDecimal price;
