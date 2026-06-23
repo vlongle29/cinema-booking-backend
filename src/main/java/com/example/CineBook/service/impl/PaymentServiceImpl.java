@@ -2,6 +2,7 @@ package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.config.VNPAYConfig;
 import com.example.CineBook.common.constant.BookingStatus;
+import com.example.CineBook.common.constant.TransactionStatus;
 import com.example.CineBook.common.exception.BusinessException;
 import com.example.CineBook.common.exception.MessageCode;
 import com.example.CineBook.common.util.RequestUtils;
@@ -42,6 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final SeatRepository seatRepository;
     private final SysUserRepository sysUserRepository;
     private final QRCodeService qrCodeService;
+    private final TransactionRepository transactionRepository;
 //    private final SeatHoldService seatHoldService;
     private final SeatTypeRepository seatTypeRepository;
 //    private final TicketCodeGenerator ticketCodeGenerator;
@@ -128,20 +130,22 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("Payment successful for booking {}. VNPay transaction no: {}", bookingId, transactionNo);
 
+        // Save Transaction to DB
+        Transaction transaction = Transaction.builder()
+                .bookingId(bookingId)
+                .transactionCode(transactionNo)
+                .paymentGateway("VNPAY")
+                .amount(booking.getFinalAmount())
+                .status(TransactionStatus.SUCCESS)
+                .transactionTime(LocalDateTime.now())
+                .build();
+        transactionRepository.save(transaction);
+
+        // Update Booking status
         booking.setStatus(BookingStatus.PAID);
         bookingRepository.save(booking);
 
-        // Get tickets and notify WebSocket
-//        List<Ticket> tickets = ticketRepository.findByBookingId(bookingId);
-//        for (Ticket ticket : tickets) {
-//            seatWebSocketService.notifySeatBooked(
-//                    ticket.getShowtimeId(),
-//                    ticket.getSeatId()
-//            );
-//        }
-
         // Send booking confirmation email
-
         try {
             sendBookingConfirmationEmail(booking);
         } catch (Exception e) {

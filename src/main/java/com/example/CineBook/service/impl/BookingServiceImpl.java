@@ -63,6 +63,8 @@ public class BookingServiceImpl implements BookingService {
     private final SeatTypeRepository seatTypeRepository;
     private final BookingCodeGenerator bookingCodeGenerator;
     private final ProductRepository productRepository;
+    private final SysUserRepository sysUserRepository;
+    private final TransactionRepository transactionRepository;
 
     private static final int BOOKING_EXPIRATION_MINUTES = 15;
 
@@ -90,10 +92,91 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse getBookingById(UUID id) {
+    @Transactional(readOnly = true)
+    public BookingDetailResponse getDetailBookingById(UUID id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MessageCode.BOOKING_NOT_FOUND));
-        return bookingMapper.toResponse(booking);
+
+        // Get showtime info
+        Showtime showtime = showtimeRepository.findById(booking.getShowtimeId())
+                .orElseThrow(() -> new BusinessException(MessageCode.SHOWTIME_NOT_FOUND));
+        Movie movie = movieRepository.findById(showtime.getMovieId()).orElse(null);
+        Branch branch = branchRepository.findById(showtime.getBranchId()).orElse(null);
+        Room room = roomRepository.findById(showtime.getRoomId()).orElse(null);
+        City city = branch != null ? cityRepository.findById(branch.getCityId()).orElse(null) : null;
+
+        BookingDetailResponse.ShowtimeInfo showtimeInfo = BookingDetailResponse.ShowtimeInfo.builder()
+                .movieTitle(movie != null ? movie.getTitle() : null)
+                .branchName(branch != null ? branch.getName() : null)
+                .roomName(room != null ? room.getName() : null)
+                .startTime(showtime.getStartTime())
+                .cityName(city != null ? city.getName() : null)
+                .build();
+
+        // Get seats info
+        List<Ticket> tickets = ticketRepository.findByBookingId(id);
+        List<BookingDetailResponse.SeatInfo> seatInfos = tickets.stream()
+                .map(ticket -> {
+                    Seat seat = seatRepository.findById(ticket.getSeatId()).orElse(null);
+                    SeatType seatType = seat != null ? seatTypeRepository.findById(seat.getSeatTypeId()).orElse(null) : null;
+                    String seatNumber = seat != null ? seat.getRowChar() + seat.getSeatNumber() : "Unknown";
+                    
+                    return BookingDetailResponse.SeatInfo.builder()
+                            .seatNumber(seatNumber)
+                            .seatType(seatType != null ? seatType.getName() : null)
+                            .price(ticket.getPrice())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Get products info
+        List<BookingProduct> bookingProducts = bookingProductRepository.findByBookingId(id);
+        List<BookingDetailResponse.ProductInfo> productInfos = bookingProducts.stream()
+                .map(bp -> {
+                    Product product = productRepository.findById(bp.getProductId()).orElse(null);
+                    BigDecimal totalPrice = bp.getPriceAtPurchase().multiply(new BigDecimal(bp.getQuantity()));
+                    
+                    return BookingDetailResponse.ProductInfo.builder()
+                            .productName(product != null ? product.getName() : null)
+                            .quantity(bp.getQuantity())
+                            .pricePerUnit(bp.getPriceAtPurchase())
+                            .totalPrice(totalPrice)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Get payment info
+        Transaction transaction = transactionRepository.findByBookingId(id).orElse(null);
+        BookingDetailResponse.PaymentInfo paymentInfo = BookingDetailResponse.PaymentInfo.builder()
+                .totalTicketPrice(booking.getTotalTicketPrice())
+                .totalFoodPrice(booking.getTotalFoodPrice())
+                .discountAmount(booking.getDiscountAmount())
+                .finalAmount(booking.getFinalAmount())
+                .paymentMethod(booking.getPaymentMethod())
+                .transactionCode(transaction != null ? transaction.getTransactionCode() : null)
+                .paymentTime(transaction != null ? transaction.getTransactionTime() : null)
+                .build();
+
+        // Get customer info
+        SysUser user = booking.getUserId() != null ? 
+                sysUserRepository.findById(booking.getUserId()).orElse(null) : null;
+        BookingDetailResponse.CustomerInfo customerInfo = BookingDetailResponse.CustomerInfo.builder()
+                .name(user != null ? user.getName() : "Khách vãng lai")
+                .email(user != null ? user.getEmail() : null)
+                .phone(user != null ? user.getPhone() : null)
+                .build();
+
+        return BookingDetailResponse.builder()
+                .bookingId(booking.getId())
+                .bookingCode(booking.getBookingCode())
+                .status(booking.getStatus())
+                .bookingDate(booking.getBookingDate())
+                .showtime(showtimeInfo)
+                .seats(seatInfos)
+                .products(productInfos)
+                .payment(paymentInfo)
+                .customer(customerInfo)
+                .build();
     }
 
     @Override

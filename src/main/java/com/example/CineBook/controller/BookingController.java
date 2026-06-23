@@ -117,9 +117,9 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Lấy thông tin booking theo ID")
-    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(bookingService.getBookingById(id)));
+    @Operation(summary = "Lấy thông tin chi tiết booking theo ID")
+    public ResponseEntity<ApiResponse<BookingDetailResponse>> getBookingById(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.getDetailBookingById(id)));
     }
 
     @GetMapping("/user/{userId}")

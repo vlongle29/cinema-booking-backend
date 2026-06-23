@@ -1,21 +1,15 @@
 package com.example.CineBook.repository.impl;
 
+import com.example.CineBook.common.constant.ShowtimeStatus;
 import com.example.CineBook.dto.showtime.ShowtimeSearchDTO;
 import com.example.CineBook.model.Branch;
 import com.example.CineBook.model.Branch_;
 import com.example.CineBook.model.Showtime;
 import com.example.CineBook.model.Showtime_;
 import com.example.CineBook.repository.custom.ShowtimeRepositoryCustom;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
-
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -62,6 +56,10 @@ public class ShowtimeRepositoryImpl implements ShowtimeRepositoryCustom {
                         date.atStartOfDay(),
                         date.atTime(LocalTime.MAX)
                 ));
+            }
+
+            if (searchDTO.getStatus() != null) {
+                predicates.add(cb.equal(root.get(Showtime_.status), ShowtimeStatus.OPEN));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

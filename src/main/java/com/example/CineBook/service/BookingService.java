@@ -19,7 +19,7 @@ public interface BookingService {
     BookingResponse addProductsBatch(UUID bookingId, BookingProductBatchRequest request);
     BookingSummaryResponse getBookingSummary(UUID bookingId);
     BookingResponse checkout(UUID bookingId, BookingCheckoutRequest request);
-    BookingResponse getBookingById(UUID id);
+    BookingDetailResponse getDetailBookingById(UUID id);
     List<BookingResponse> getBookingsByUserId(UUID userId);
     void deleteBooking(UUID id);
     BookingResponse cancelBooking(UUID bookingId, String reason);

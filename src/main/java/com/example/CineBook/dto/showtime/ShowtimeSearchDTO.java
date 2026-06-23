@@ -1,6 +1,7 @@
 package com.example.CineBook.dto.showtime;
 
 import com.example.CineBook.common.constant.MovieFormat;
+import com.example.CineBook.common.constant.ShowtimeStatus;
 import com.example.CineBook.common.dto.request.SearchBaseDto;
 import lombok.*;
 
@@ -20,4 +21,5 @@ public class ShowtimeSearchDTO extends SearchBaseDto {
     private UUID cityId;
     private LocalDate date;
     private MovieFormat format;
+    private ShowtimeStatus status;
 }
