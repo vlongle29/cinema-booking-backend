@@ -26,8 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,7 +50,7 @@ public class SysUserServiceImpl implements SysUserService {
     private final SysRoleRepository sysRoleRepository;
     private final SysUserRoleRepository sysUserRoleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ApplicationEventPublisher eventPublisher;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final EmailService emailService;
 
     @Override
@@ -137,7 +137,7 @@ public class SysUserServiceImpl implements SysUserService {
         }
 
         SysUser updated = sysUserRepository.save(user);
-        eventPublisher.publishEvent(new UserCacheEvictEvent(List.of(updated.getId())));
+        redisTemplate.delete("userInfo::" + updated.getId());
         return userMapper.toResponse(updated);
     }
 
@@ -205,8 +205,7 @@ public class SysUserServiceImpl implements SysUserService {
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         sysUserRepository.save(user);
-        // Phát event xóa cache user info
-        eventPublisher.publishEvent(new UserCacheEvictEvent(List.of(user.getId())));
+        redisTemplate.delete("userInfo::" + user.getId());
     }
 
     @Override
@@ -214,8 +213,7 @@ public class SysUserServiceImpl implements SysUserService {
         SysUser user = sysUserRepository.findById(request.getUserId()).orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         sysUserRepository.save(user);
-        // Phát event xóa cache user info
-        eventPublisher.publishEvent(new UserCacheEvictEvent(List.of(user.getId())));
+        redisTemplate.delete("userInfo::" + user.getId());
     }
 
     @Override
@@ -224,9 +222,8 @@ public class SysUserServiceImpl implements SysUserService {
         if (unlockedCount == 0 && request.getIds() != null && !request.getIds().isEmpty()) {
             throw new BusinessException(MessageCode.USER_NOT_FOUND);
         }
-        // Phát event xóa cache user info
         if (request.getIds() != null) {
-            eventPublisher.publishEvent(new UserCacheEvictEvent(request.getIds()));
+            request.getIds().forEach(id -> redisTemplate.delete("userInfo::" + id));
         }
         return unlockedCount;
     }
@@ -251,9 +248,8 @@ public class SysUserServiceImpl implements SysUserService {
         if (lockedCount == 0 && request.getIds() != null && !request.getIds().isEmpty()) {
             throw new BusinessException(MessageCode.USER_NOT_FOUND);
         }
-        // Phát event xóa cache user info
         if (request.getIds() != null) {
-            eventPublisher.publishEvent(new UserCacheEvictEvent(request.getIds()));
+            request.getIds().forEach(id -> redisTemplate.delete("userInfo::" + id));
         }
         return lockedCount;
     }
@@ -289,8 +285,7 @@ public class SysUserServiceImpl implements SysUserService {
             // 3. Lưu tất cả các role mới trong một batch operation để tối ưu hiệu suất.
             sysUserRoleRepository.saveAll(newUserRoles);
         }
-        // Phát event xóa cache user info
-        eventPublisher.publishEvent(new UserCacheEvictEvent(List.of(userId)));
+        redisTemplate.delete("userInfo::" + userId);
     }
 
     @Override
@@ -303,8 +298,7 @@ public class SysUserServiceImpl implements SysUserService {
 
         user.setPassword(passwordEncoder.encode(newResetPassword));
         sysUserRepository.save(user);
-
-        eventPublisher.publishEvent(new UserCacheEvictEvent(List.of(user.getId())));
+        redisTemplate.delete("userInfo::" + user.getId());
     }
 
 

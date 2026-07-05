@@ -132,7 +132,18 @@ public class AuthServiceImpl implements AuthService {
 
     public LoginResponse buildLoginResponse(SysUser user, String device, String ipAddress) {
         UUID sessionId = UUID.randomUUID();
-        Authentication authentication = new UsernamePasswordAuthenticationToken(user.getId().toString(), null, null);
+        
+        // Load authorities from database
+        List<String> roles = sysUserRoleRepository.findByUserId(user.getId()).stream()
+                .map(userRole -> sysRoleRepository.findById(userRole.getRoleId())
+                        .map(role -> "ROLE_" + role.getCode())
+                        .orElse(null))
+                .filter(role -> role != null)
+                .toList();
+        
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user.getId().toString(), null, 
+                roles.stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList());
         String accessToken = jwtTokenProvider.generateToken(authentication, sessionId, user.getUsername());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId().toString(), sessionId);
 
@@ -209,9 +220,17 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // Step 5: Generate new tokens (rotation)
+            // Load authorities from database
+            List<String> roles = sysUserRoleRepository.findByUserId(sessionInfo.userId()).stream()
+                    .map(userRole -> sysRoleRepository.findById(userRole.getRoleId())
+                            .map(role -> "ROLE_" + role.getCode())
+                            .orElse(null))
+                    .filter(role -> role != null)
+                    .toList();
+            
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    sessionInfo.userId().toString(), null, null
-            );
+                    sessionInfo.userId().toString(), null, 
+                    roles.stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList());
 
             String newAccessToken = jwtTokenProvider.generateToken(authentication, sessionId, sessionInfo.username());
             String newRefreshToken = jwtTokenProvider.generateRefreshToken(sessionInfo.userId().toString(), sessionId);
@@ -303,7 +322,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     public UserInfoResponse getCurrentUser() {
-        return SecurityUtils.getCurrentUserLogin().map(UUID::fromString).map(sysUserService::getUserDetail).orElseThrow(() -> new BusinessException(MessageCode.LOGIN_FAIL));
+        UUID userId = SecurityUtils.getCurrentUserId();
+        return sysUserService.getUserDetail(userId);
     }
 
 }

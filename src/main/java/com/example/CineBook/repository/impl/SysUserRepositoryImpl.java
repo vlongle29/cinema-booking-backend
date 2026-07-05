@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Repository
 public class SysUserRepositoryImpl extends BaseRepositoryImpl<SysUser, SysUserSearchDTO> implements SysUserRepositoryCustom {
     public SysUserRepositoryImpl() {
@@ -35,9 +38,10 @@ public class SysUserRepositoryImpl extends BaseRepositoryImpl<SysUser, SysUserSe
     protected List<Predicate> buildPredicates(Root<SysUser> root, CriteriaQuery<?> query, CriteriaBuilder cb, SysUserSearchDTO searchDTO) {
         List<Predicate> predicates = new ArrayList<>();
 
+        log.info(">>> ids from searchDTO: {}", searchDTO.getIds());
         if (searchDTO.getIds() != null && !searchDTO.getIds().isEmpty()) {
-            // Lọc theo các id
-            predicates.add(root.get(SysUser_.id).in(searchDTO.getIds()));
+            List<UUID> uuids = searchDTO.getIds().stream().map(UUID::fromString).toList();
+            predicates.add(root.get(SysUser_.id).in(uuids));
         }
         // Luôn lọc bỏ các bản ghi đã bị xóa mềm
         predicates.add(cb.isFalse(root.get(SysUser_.isDelete)));
@@ -85,7 +89,7 @@ public class SysUserRepositoryImpl extends BaseRepositoryImpl<SysUser, SysUserSe
                             // Điều kiện liên kết (correlation) subquery với truy vấn chính qua userId
                             cb.equal(subRoot.get(SysUserRole_.userId), root.get(SysUser_.id)),
                             // Lọc trong subquery theo danh sách roleId được cung cấp
-                            subRoot.get(SysUserRole_.roleId).in(searchDTO.getRoleIds())
+                            subRoot.get(SysUserRole_.roleId).in(searchDTO.getRoleIds().stream().map(UUID::fromString).toList())
                     )
             );
             predicates.add(cb.exists(subquery));
@@ -125,7 +129,7 @@ public class SysUserRepositoryImpl extends BaseRepositoryImpl<SysUser, SysUserSe
             return 0;
         }
         SysUserSearchDTO searchDTO = new SysUserSearchDTO();
-        searchDTO.setIds(ids);
+        searchDTO.setIds(ids.stream().map(UUID::toString).toList());
         return updateFieldByFilter(searchDTO, "lockFlag", lockFlag.getValue());
     }
 

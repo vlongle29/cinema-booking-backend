@@ -48,6 +48,7 @@ public class SecurityConfig {
             "/api/movies/{id}",
 //            "/api/movies/**",
             "/api/payments/vn-pay-callback",
+            "/api/rooms/search",
             // Thêm các dòng này để cho phép truy cập Swagger
             "/swagger-ui/**",
             "/v3/api-docs/**",

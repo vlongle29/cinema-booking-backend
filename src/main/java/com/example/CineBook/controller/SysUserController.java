@@ -10,13 +10,16 @@ import com.example.CineBook.service.SysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Tag(name = "User", description = "Quản lý người dùng: tạo, cập nhật, xoá, tìm kiếm user")
 @RestController
 @RequestMapping("/api/users")
@@ -50,7 +53,11 @@ public class SysUserController {
 
     @Operation(summary = "Tìm kiếm người dùng", description = "Tìm kiếm người dùng theo điều kiện và trả về danh sách người dùng có phân trang ")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<PageResponse<UserInfoResponse>>> searchUser(@ModelAttribute SysUserSearchDTO searchDTO) {
+    public ResponseEntity<ApiResponse<PageResponse<UserInfoResponse>>> searchUser(
+            @ModelAttribute SysUserSearchDTO searchDTO
+            ) {
+
+        log.info("Searching users with criteria: {}", searchDTO);
         return ResponseEntity.ok(ApiResponse.success(sysUserService.searchUsers(searchDTO)));
     }
 
