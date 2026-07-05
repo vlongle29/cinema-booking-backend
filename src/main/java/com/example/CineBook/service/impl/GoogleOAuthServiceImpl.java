@@ -2,6 +2,8 @@ package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.config.GoogleOauth2Config;
 import com.example.CineBook.common.constant.AuthProvider;
+import com.example.CineBook.common.constant.PositionEnum;
+import com.example.CineBook.common.constant.RoleEnum;
 import com.example.CineBook.common.security.JwtTokenProvider;
 import com.example.CineBook.dto.auth.AuthResponseDto;
 import com.example.CineBook.dto.auth.GoogleProfile;
@@ -18,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -48,6 +51,10 @@ public class GoogleOAuthServiceImpl implements GoogleOAuthService {
             // 3. Xử lý logic Database
             SysUser user = sysUserRepository.findByEmail(profile.getEmail())
                     .orElseGet(() -> createNewGoogleUser(profile));
+
+            if (!StringUtils.hasText(user.getTypeAccount())) {
+               user.setTypeAccount(RoleEnum.CUSTOMER.getValue());
+            }
 
             // 4. Tạo Authentication object và sessionId
             Authentication authentication = new UsernamePasswordAuthenticationToken(

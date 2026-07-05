@@ -46,3 +46,8 @@ public enum LockFlag {
         throw new IllegalArgumentException("Invalid LockFlag value: " + value);
     }
 }
+
+//public static final LockFlag NORMAL = new LockFlag("0");
+//public static final LockFlag LOCK = new LockFlag("9");
+
+
