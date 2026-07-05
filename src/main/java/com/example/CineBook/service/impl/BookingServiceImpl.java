@@ -218,11 +218,10 @@ public class BookingServiceImpl implements BookingService {
                     .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
         }
 
-        if (SecurityUtils.hasRole("STAFF") || SecurityUtils.hasRole("EMPLOYEE")) {
-            // Assign staffId for booking created by staff/employee
-             staffId = employeeRepository.findByUserId(userId)
+        if (SecurityUtils.hasRole("STAFF") || SecurityUtils.hasRole("EMPLOYEE") || SecurityUtils.hasRole("MANAGER")) {
+            staffId = employeeRepository.findByUserId(userId)
                     .map(Employee::getId)
-                    .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
+                    .orElse(null);
         }
 
         // Validate all seats exist and check availability
@@ -407,7 +406,17 @@ public class BookingServiceImpl implements BookingService {
     public PageResponse<BookingResponse> searchBookings(BookingSearchDTO searchDTO) {
         Pageable pegeable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
         Page<Booking> entityPage = bookingRepository.searchWithFilters(searchDTO, pegeable);
-        Page<BookingResponse> responsePage = entityPage.map(bookingMapper::toResponse);
+        Page<BookingResponse> responsePage = entityPage.map(booking -> {
+            BookingResponse response = bookingMapper.toResponse(booking);
+            if (booking.getUserId() != null) {
+                sysUserRepository.findById(booking.getUserId()).ifPresent(user -> {
+                    response.setCustomerName(user.getName());
+                    response.setPhoneNumber(user.getPhone());
+                    response.setEmail(user.getEmail());
+                });
+            }
+            return response;
+        });
         return PageResponse.of(responsePage);
     }
 

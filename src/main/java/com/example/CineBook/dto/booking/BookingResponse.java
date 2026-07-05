@@ -19,6 +19,7 @@ public class BookingResponse {
     private UUID customerId;
     private UUID staffId;
     private UUID showtimeId;
+    private String bookingCode;
     private UUID promotionId;
     private BigDecimal totalTicketPrice;
     private BigDecimal totalFoodPrice;
@@ -30,4 +31,7 @@ public class BookingResponse {
     private PaymentMethod paymentMethod;
     private List<TicketResponse> tickets;
     private List<BookingProductResponse> products;
+    private String customerName;
+    private String phoneNumber;
+    private String email;
 }

@@ -9,8 +9,5 @@ import lombok.EqualsAndHashCode;
 public class BookingSearchDTO extends SearchBaseDto {
     private String keyword;
     private String bookingCode;
-    private String customerName;
-    private String customerEmail;
-    private String customerPhone;
     private String status;
 }
