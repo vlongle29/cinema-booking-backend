@@ -31,14 +31,14 @@ public class RoomController {
     private final ShowtimeService showtimeService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Tạo phòng chiếu mới")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@Valid @RequestBody RoomRequest request) {
         return ResponseEntity.ok(ApiResponse.success(roomService.createRoom(request)));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Lấy danh sách tất cả phòng chiếu", description = "Super Admin: lấy tất cả. Branch user: chỉ lấy phòng của chi nhánh")
     public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
         return ResponseEntity.ok(ApiResponse.success(roomService.getAllRooms()));
@@ -93,7 +93,7 @@ public class RoomController {
     
     @GetMapping("/{roomId}/available-slots")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
-    @RequirePosition("{BRANCH_MANAGER}")
+//    @RequirePosition("{BRANCH_MANAGER}")
     @Operation(summary = "Lấy danh sách time slots khả dụng cho phòng và phim trong ngày")
     public ResponseEntity<ApiResponse<List<String>>> getAvailableTimeSlots(
             @PathVariable UUID roomId,

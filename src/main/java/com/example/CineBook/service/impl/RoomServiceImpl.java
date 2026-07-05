@@ -191,7 +191,14 @@ public class RoomServiceImpl implements RoomService {
     public PageResponse<RoomResponse> searchRooms(RoomSearchDTO searchDTO) {
         Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
         Page<Room> entityPage = roomRepository.searchWithFilters(searchDTO, pageable);
-        Page<RoomResponse> responsePage = entityPage.map(roomMapper::toResponse);
+        Page<RoomResponse> responsePage = entityPage.map(room -> {
+            RoomResponse response = roomMapper.toResponse(room);
+            if (room.getBranchId() != null) {
+                branchRepository.findById(room.getBranchId())
+                        .ifPresent(branch -> response.setBranchName(branch.getName()));
+            }
+            return response;
+        });
         return PageResponse.of(responsePage);
     }
 }

@@ -20,6 +20,7 @@ public class RoomResponse {
     private String name;
     private Integer totalSeats;
     private UUID branchId;
+    private String branchName;
     private LocalTime openTime;
     private LocalTime closeTime;
     private Instant createTime;
