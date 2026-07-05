@@ -1,5 +1,6 @@
 package com.example.CineBook.service.impl;
 
+import com.example.CineBook.common.constant.PositionEnum;
 import com.example.CineBook.common.constant.RoleEnum;
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
@@ -19,6 +20,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,8 @@ public class BranchServiceImpl implements BranchService {
     private final SysRoleRepository sysRoleRepository;
     private final CityRepository cityRepository;
     private final SysUserRepository sysUserRepository;
+    private final SysUserRoleRepository sysUserRoleRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @CacheEvict(value = "branchCache", allEntries = true)
     @Override
@@ -44,6 +48,27 @@ public class BranchServiceImpl implements BranchService {
     public BranchResponse createBranch(BranchRequest request) {
         if (branchRepository.existsByName(request.getName())) {
             throw new BusinessException(MessageCode.BRANCH_ALREADY_EXISTS);
+        }
+
+        SysUser user = sysUserRepository.findById(request.getManagerId())
+                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+
+        if (!user.getTypeAccount().equals(RoleEnum.STAFF.getValue()) && !user.getTypeAccount().equals(RoleEnum.MANAGER.getValue())) {
+            throw new BusinessException(MessageCode.USER_NOT_STAFF_OR_MANAGER);
+        }
+
+        if (user.getTypeAccount().equals(RoleEnum.STAFF.getValue())) {
+            user.setTypeAccount(PositionEnum.MANAGER.getValue());
+            sysUserRepository.save(user);
+
+            SysRole role = sysRoleRepository.findByCode(RoleEnum.MANAGER.getValue())
+                    .orElseThrow(() -> new BusinessException(MessageCode.SYS_ROLE_NOT_FOUND));
+            SysUserRole userRole = sysUserRoleRepository.findByUserId(user.getId()).stream().findFirst()
+                    .orElseThrow(() -> new BusinessException(MessageCode.SYS_ROLE_NOT_FOUND));
+            userRole.setRoleId(role.getId());
+            sysUserRoleRepository.save(userRole);
+
+            redisTemplate.delete("userInfo::" + user.getId());
         }
 
         Branch branch = branchMapper.toEntity(request);
@@ -68,16 +93,6 @@ public class BranchServiceImpl implements BranchService {
 
         cityRepository.findById(request.getCityId())
                 .orElseThrow(() -> new BusinessException(MessageCode.CITY_NOT_FOUND));
-
-        if (request.getManagerId() != null) {
-            List<SysRoleResponse> roles = sysRoleRepository.getRoleInfoByUserId(request.getManagerId());
-            boolean isAdmin = roles.stream()
-                    .anyMatch(role -> RoleEnum.ADMIN.getValue().equals(role.getCode()));
-
-            if (!isAdmin) {
-                throw new BusinessException(MessageCode.ROLE_MUST_BE_ADMIN);
-            }
-        }
 
         branchMapper.updateEntity(request, branch);
         Branch updated = branchRepository.save(branch);

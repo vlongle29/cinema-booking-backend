@@ -29,14 +29,14 @@ public class BranchController {
     private final com.example.CineBook.service.RoomService roomService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Tạo chi nhánh mới")
     public ResponseEntity<ApiResponse<BranchResponse>> createBranch(@Valid @RequestBody BranchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(branchService.createBranch(request)));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Xem thông tin chi nhánh")
     public ResponseEntity<ApiResponse<BranchResponse>> getBranchById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(branchService.getBranchById(id)));
@@ -68,7 +68,7 @@ public class BranchController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Tìm kiếm và lọc chi nhánh")
     public ResponseEntity<ApiResponse<PageResponse<BranchResponse>>> searchBranches(
             @ModelAttribute BranchSearchDTO searchDTO) {

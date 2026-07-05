@@ -1,13 +1,13 @@
 package com.example.CineBook.dto.sysUser;
 
 import com.example.CineBook.common.constant.LockFlag;
+import com.example.CineBook.common.constant.PositionEnum;
 import com.example.CineBook.common.dto.request.SearchBaseDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
-import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -27,9 +27,11 @@ public class SysUserSearchDTO extends SearchBaseDto {
     @Schema(description = "Lọc người dùng theo trạng thái khóa.", implementation = LockFlag.class, example = "LOCK")
     private LockFlag lockFlag;
 
+    private PositionEnum position;
+
     @Schema(description = "Lọc người dùng theo danh sách ID vai trò")
-    private List<UUID> roleIds;
+    private List<String> roleIds;
 
     @Schema(description = "Lọc người dùng theo danh sách ID")
-    private List<UUID> ids;
+    private List<String> ids;
 }

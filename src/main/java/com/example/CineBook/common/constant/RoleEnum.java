@@ -7,7 +7,8 @@ public enum RoleEnum {
     SUPER_ADMIN("SUPER_ADMIN"),
     ADMIN("ADMIN"),
     STAFF("STAFF"),
-    CUSTOMER("CUSTOMER");
+    CUSTOMER("CUSTOMER"),
+    MANAGER("MANAGER");
 
     private final String value;
 
