@@ -86,4 +86,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID>, JpaSp
         @Param("openStatus") ShowtimeStatus openStatus,
         @Param("closedStatus") ShowtimeStatus closedStatus
     );
+
+    @Query("SELECT s FROM Showtime s WHERE s.movieId = :movieId AND s.isDelete = false")
+    List<Showtime> findShowtimesByMovieId(@Param("movieId") UUID movieId);
 }

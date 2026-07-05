@@ -101,6 +101,7 @@ public class ShowtimeController {
     }
     
     @GetMapping("/{showtimeId}/seats")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Lấy trạng thái ghế theo suất chiếu", 
                description = "Hiển thị tất cả ghế với trạng thái: AVAILABLE, BOOKED, HELD")
     public ResponseEntity<ApiResponse<ShowtimeSeatStatusResponse>> getSeatStatusByShowtime(
@@ -110,7 +111,7 @@ public class ShowtimeController {
     }
     
     @GetMapping("/by-room")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
     @Operation(summary = "Lấy danh sách suất chiếu theo phòng và khoảng ngày")
     public ResponseEntity<ApiResponse<RoomShowtimeResponse>> getShowtimesByRoom(
             @RequestParam UUID roomId,
@@ -130,7 +131,7 @@ public class ShowtimeController {
     }
     
     @PostMapping("/batch")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')")
     @Operation(summary = "Tạo nhiều suất chiếu cùng lúc với xử lý conflict")
     public ResponseEntity<ApiResponse<BatchCreateShowtimeResponse>> batchCreateShowtimes(
             @Valid @RequestBody BatchCreateShowtimeRequest request) {
