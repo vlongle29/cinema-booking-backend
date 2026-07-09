@@ -73,6 +73,13 @@ public class BranchServiceImpl implements BranchService {
 
         Branch branch = branchMapper.toEntity(request);
         Branch saved = branchRepository.save(branch);
+
+        // Update the manager's branchId after the branch is saved
+        SysUser existingUser = sysUserRepository.findById(request.getManagerId())
+                .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
+        existingUser.setBranchId(saved.getId());
+        sysUserRepository.save(existingUser);
+
         return branchMapper.toResponse(saved);
     }
 
