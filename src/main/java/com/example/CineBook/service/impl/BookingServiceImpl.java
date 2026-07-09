@@ -212,13 +212,13 @@ public class BookingServiceImpl implements BookingService {
         UUID customerId = null;
         UUID staffId = null;
 
-        if (!SecurityUtils.hasRole("SUPERADMIN") && !SecurityUtils.hasRole("ADMIN") && !SecurityUtils.hasRole("STAFF") && !SecurityUtils.hasRole("EMPLOYEE")) {
+        if (!SecurityUtils.hasAnyRole("SUPER_ADMIN", "ADMIN", "STAFF", "MANAGER")) {
             customerId = customerRepository.findByUserId(userId)
                     .map(Customer::getId)
                     .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
         }
 
-        if (SecurityUtils.hasRole("STAFF") || SecurityUtils.hasRole("EMPLOYEE") || SecurityUtils.hasRole("MANAGER")) {
+        if (SecurityUtils.hasAnyRole("STAFF", "MANAGER")) {
             staffId = employeeRepository.findByUserId(userId)
                     .map(Employee::getId)
                     .orElse(null);
@@ -672,7 +672,7 @@ public class BookingServiceImpl implements BookingService {
 
         Page<Booking> bookings = Page.empty();
 
-        if (!SecurityUtils.hasRole("ADMIN") && !SecurityUtils.hasRole("STAFF") && !SecurityUtils.hasRole("EMPLOYEE")) {
+        if (!SecurityUtils.hasAnyRole("SUPER_ADMIN", "ADMIN", "STAFF", "MANAGER")) {
             customerId = customerRepository.findByUserId(userId)
                     .map(Customer::getId)
                     .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
