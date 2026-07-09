@@ -12,6 +12,7 @@ import com.example.CineBook.dto.auth.LoginResponse;
 import com.example.CineBook.dto.auth.RegisterRequest;
 import com.example.CineBook.dto.auth.RegisterResponse;
 import com.example.CineBook.dto.sysUser.UserInfoResponse;
+import com.example.CineBook.dto.sysUser.UserProfileResponse;
 import com.example.CineBook.mapper.AuthMapper;
 import com.example.CineBook.mapper.UserMapper;
 import com.example.CineBook.model.BlacklistedToken;
@@ -78,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(MessageCode.PHONE_ALREADY_EXISTS);
         }
 
-        // Create new user
+        // Create new user 
         SysUser user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
@@ -321,9 +322,11 @@ public class AuthServiceImpl implements AuthService {
         return customerRole.getId();
     }
 
-    public UserInfoResponse getCurrentUser() {
+    public UserProfileResponse getCurrentUser() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        return sysUserService.getUserDetail(userId);
+        UserInfoResponse userInfo = sysUserService.getUserDetail(userId);
+        List<String> permissions = sysPermissionService.getPermissionInfoByUserId(userId);
+        return new UserProfileResponse(userInfo, permissions);
     }
 
 }

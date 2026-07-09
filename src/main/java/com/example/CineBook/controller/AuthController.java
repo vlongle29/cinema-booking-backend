@@ -5,7 +5,7 @@ import com.example.CineBook.common.response.ApiResponse;
 import com.example.CineBook.common.util.CookieUtils;
 import com.example.CineBook.common.util.RequestUtils;
 import com.example.CineBook.dto.auth.*;
-import com.example.CineBook.dto.sysUser.UserInfoResponse;
+import com.example.CineBook.dto.sysUser.UserProfileResponse;
 import com.example.CineBook.service.AuthService;
 import com.example.CineBook.service.GoogleOAuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -193,9 +193,8 @@ public class AuthController {
 
     @Operation(summary = "Lấy thông tin người dùng hiện tại", description = "Lấy thông tin chi tiết của người dùng đã xác thực.")
     @GetMapping("/info")
-    public ResponseEntity<ApiResponse<UserInfoResponse>> getCurrentUser() {
-        UserInfoResponse userInfo = authService.getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.success( userInfo));
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getCurrentUser() {
+        return ResponseEntity.ok(ApiResponse.success(authService.getCurrentUser()));
     }
 
 }

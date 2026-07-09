@@ -5,6 +5,7 @@ import com.example.CineBook.dto.auth.LoginResponse;
 import com.example.CineBook.dto.auth.RegisterRequest;
 import com.example.CineBook.dto.auth.RegisterResponse;
 import com.example.CineBook.dto.sysUser.UserInfoResponse;
+import com.example.CineBook.dto.sysUser.UserProfileResponse;
 
 import java.util.UUID;
 
@@ -13,5 +14,5 @@ public interface AuthService {
     LoginResponse login(LoginRequest request, String device, String ipAddress);
     LoginResponse refreshToken(UUID sessionId, String refreshToken);
     void logout(String accessToken, UUID sessionId);
-    UserInfoResponse getCurrentUser();
+    UserProfileResponse getCurrentUser();
 }

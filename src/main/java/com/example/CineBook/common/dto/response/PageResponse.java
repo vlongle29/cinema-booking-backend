@@ -19,7 +19,7 @@ public class PageResponse<T> {
     public static <T> PageResponse<T> of(Page<T> page) {
         PageResponse<T> response = new PageResponse<>();
         response.setContent(page.getContent());
-        response.setPageNumber(page.getNumber());
+        response.setPageNumber(page.getNumber() + 1);
         response.setPageSize(page.getSize());
         response.setTotalElements(page.getTotalElements());
         response.setTotalPages(page.getTotalPages());

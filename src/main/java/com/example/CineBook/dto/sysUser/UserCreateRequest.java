@@ -28,8 +28,7 @@ public class UserCreateRequest {
     private String phone;
     private String avatar;
     private String systemFlag;
-    @NotNull(message = "{ROLES_REQUIRED}")
+    private String typeAccount;
     private List<UUID> roleIds;
-    @NotNull(message = "{BRANCH_REQUIRED}")
     private  UUID branchId;
 }

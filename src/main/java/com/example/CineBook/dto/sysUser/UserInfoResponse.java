@@ -24,4 +24,5 @@ public class UserInfoResponse {
     private String systemFlag;
     // Trường mới để chứa danh sách vai trò của người dùng
     private List<RoleInfo> roles;
+    private String branchName;
 }

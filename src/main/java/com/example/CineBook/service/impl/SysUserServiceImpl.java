@@ -52,6 +52,7 @@ public class SysUserServiceImpl implements SysUserService {
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
     private final EmailService emailService;
+    private final com.example.CineBook.repository.irepository.BranchRepository branchRepository;
 
     @Override
     public UserInfoResponse createUser(UserCreateRequest request) {
@@ -81,7 +82,6 @@ public class SysUserServiceImpl implements SysUserService {
                         return userRole;
                     }).toList();
             sysUserRoleRepository.saveAll(userRoles);
-//            throw new BusinessException(MessageCode.USER_WITH_NO_ROLE);
         }
 
         List<UserRoleProjection> userRoles = sysRoleRepository.findUserRolesByUserIds(List.of(savedUser.getId()));
@@ -171,28 +171,38 @@ public class SysUserServiceImpl implements SysUserService {
     public PageResponse<UserInfoResponse> searchUsers(SysUserSearchDTO searchDTO) {
         Page<SysUser> userPage = sysUserRepository.findAllWithFilters(searchDTO);
         List<UUID> userIdsOnPage = userPage.getContent().stream().map(SysUser::getId).collect(Collectors.toList());
+
+        // Roles
         List<UserRoleProjection> userRoles = sysRoleRepository.findUserRolesByUserIds(userIdsOnPage);
         Map<UUID, List<RoleInfo>> rolesByUserIdMap = new HashMap<>();
         for (UserRoleProjection proj : userRoles) {
-            UUID userId = proj.getUserId();
-            RoleInfo roleInfo = new RoleInfo(
-                    proj.getRoleId(),
-                    proj.getRoleName(),
-                    proj.getRoleCode()
-            );
-
             rolesByUserIdMap
-                    .computeIfAbsent(userId, k -> new ArrayList<>())
-                    .add(roleInfo);
-//          Equivalent:
-//            List<RoleInfo> roles = rolesByUserIdMap.get(userId);
-//            if (roles == null) {
-//                roles = new ArrayList<>();
-//                rolesByUserIdMap.put(userId, roles);
-//            }
-//            roles.add(roleInfo);
+                    .computeIfAbsent(proj.getUserId(), k -> new ArrayList<>())
+                    .add(new RoleInfo(proj.getRoleId(), proj.getRoleName(), proj.getRoleCode()));
         }
+
+        // Branch names
+        List<UUID> branchIds = userPage.getContent().stream()
+                .map(SysUser::getBranchId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<UUID, String> branchNameMap = branchRepository.findAllById(branchIds).stream()
+                .collect(Collectors.toMap(
+                        com.example.CineBook.model.Branch::getId,
+                        com.example.CineBook.model.Branch::getName
+                ));
+
         Page<UserInfoResponse> userInfoResponsePage = userMapper.mapPageWithRoles(userPage, rolesByUserIdMap);
+        userInfoResponsePage.getContent().forEach(u -> {
+            SysUser user = userPage.getContent().stream()
+                    .filter(su -> su.getId().equals(u.getId()))
+                    .findFirst().orElse(null);
+            if (user != null && user.getBranchId() != null) {
+                u.setBranchName(branchNameMap.get(user.getBranchId()));
+            }
+        });
+
         return PageResponse.of(userInfoResponsePage);
     }
 
