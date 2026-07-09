@@ -1,6 +1,7 @@
 package com.example.CineBook.service.impl;
 
 import com.example.CineBook.common.constant.GenderEnum;
+   import com.example.CineBook.common.constant.RoleEnum;
 import com.example.CineBook.common.constant.SystemFlag;
 import com.example.CineBook.common.dto.response.PageResponse;
 import com.example.CineBook.common.exception.BusinessException;
@@ -60,6 +61,7 @@ public class CustomerServiceImpl implements CustomerService {
                 .password(request.getPassword())
                 .roleIds(List.of(customerRole.getId()))
                 .systemFlag(SystemFlag.NORMAL.getValue())
+                .typeAccount(RoleEnum.CUSTOMER.getValue())
                 .build();
 
         UserInfoResponse createdUser = sysUserService.createUser(userReq);
@@ -141,9 +143,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<CustomerResponse> searchCustomers(CustomerSearchDTO searchDTO) {
-        Pageable pageable = PageRequest.of(searchDTO.getPage(), searchDTO.getSize());
+        Pageable pageable = PageRequest.of(searchDTO.getPage() - 1, searchDTO.getSize());
         Page<Customer> entityPage = customerRepository.searchWithFilters(searchDTO, pageable);
-        Page<CustomerResponse> responsePage = customerMapper.mapPage(entityPage, Collections.emptyMap());
+        Page<CustomerResponse> responsePage = entityPage.map(this::buildResponse);
         return PageResponse.of(responsePage);
     }
 
