@@ -14,4 +14,5 @@ public class RoomSearchDTO extends SearchBaseDto {
     private String name;
     private UUID branchId;
     private Boolean isDeleted;
+    private UUID manageId;
 }

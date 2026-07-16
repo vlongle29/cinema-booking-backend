@@ -53,6 +53,14 @@ public class RoomRepositoryImpl extends BaseRepositoryImpl<Room, RoomSearchDTO> 
             predicates.add(cb.equal(room.get(Room_.branchId), searchDTO.getBranchId()));
         }
 
+        if (searchDTO.getManageId() != null) {
+            jakarta.persistence.criteria.Subquery<UUID> branchSubquery = query.subquery(UUID.class);
+            Root<com.example.CineBook.model.Branch> branchRoot = branchSubquery.from(com.example.CineBook.model.Branch.class);
+            branchSubquery.select(branchRoot.get("id"))
+                    .where(cb.equal(branchRoot.get("managerId"), searchDTO.getManageId()));
+            predicates.add(room.get(Room_.branchId).in(branchSubquery));
+        }
+
         query.where(predicates.toArray(new Predicate[0]));
         query.orderBy(cb.desc(room.get(Room_.createTime)));
 
@@ -75,6 +83,14 @@ public class RoomRepositoryImpl extends BaseRepositoryImpl<Room, RoomSearchDTO> 
         }
         if (searchDTO.getBranchId() != null) {
             countPredicates.add(cb.equal(countRoot.get(Room_.branchId), searchDTO.getBranchId()));
+        }
+
+        if (searchDTO.getManageId() != null) {
+            jakarta.persistence.criteria.Subquery<UUID> branchSubquery = countQuery.subquery(UUID.class);
+            Root<com.example.CineBook.model.Branch> branchRoot = branchSubquery.from(com.example.CineBook.model.Branch.class);
+            branchSubquery.select(branchRoot.get("id"))
+                    .where(cb.equal(branchRoot.get("managerId"), searchDTO.getManageId()));
+            countPredicates.add(countRoot.get(Room_.branchId).in(branchSubquery));
         }
 
         countQuery.select(cb.count(countRoot));
