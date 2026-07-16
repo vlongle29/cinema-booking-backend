@@ -1,7 +1,6 @@
 package com.example.CineBook.model;
 
 import jakarta.persistence.*;
-import jakarta.persistence.metamodel.StaticMetamodel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-@StaticMetamodel(SysRolePermission.class)
 @Entity
 @Data
 @Builder

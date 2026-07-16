@@ -37,6 +37,7 @@ public class ShowtimeController {
     
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm suất chiếu")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PageResponse<ShowtimeResponse>>> searchShowtimes(
             @ModelAttribute ShowtimeSearchDTO searchDTO) {
         return ResponseEntity.ok(ApiResponse.success(showtimeService.searchShowtimes(searchDTO)));

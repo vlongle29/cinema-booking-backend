@@ -29,21 +29,21 @@ public class BranchController {
     private final com.example.CineBook.service.RoomService roomService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Tạo chi nhánh mới")
     public ResponseEntity<ApiResponse<BranchResponse>> createBranch(@Valid @RequestBody BranchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(branchService.createBranch(request)));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Xem thông tin chi nhánh")
     public ResponseEntity<ApiResponse<BranchResponse>> getBranchById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(branchService.getBranchById(id)));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Cập nhật thông tin chi nhánh")
     public ResponseEntity<ApiResponse<BranchResponse>> updateBranch(
             @PathVariable UUID id,
@@ -68,7 +68,7 @@ public class BranchController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     @Operation(summary = "Tìm kiếm và lọc chi nhánh")
     public ResponseEntity<ApiResponse<PageResponse<BranchResponse>>> searchBranches(
             @ModelAttribute BranchSearchDTO searchDTO) {
@@ -76,7 +76,7 @@ public class BranchController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN') or hasAnyAuthority('branch:view')")
     @Operation(summary = "Lấy tất cả chi nhánh")
     public ResponseEntity<ApiResponse<PageResponse<BranchResponse>>> getAllBranches(
             @ModelAttribute BranchSearchDTO searchDTO) {
@@ -84,7 +84,7 @@ public class BranchController {
     }
 
     @GetMapping("/{branchId}/rooms")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Lấy danh sách phòng theo chi nhánh")
     public ResponseEntity<ApiResponse<List<RoomResponse>>> getRoomsByBranch(@PathVariable UUID branchId) {
         return ResponseEntity.ok(ApiResponse.success(roomService.getRoomsByBranch(branchId)));

@@ -5,10 +5,8 @@ import com.example.CineBook.model.auditing.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.metamodel.StaticMetamodel;
 import lombok.*;
 
-@StaticMetamodel(SysPermission.class)
 @EntityListeners(AuditingEntityListener.class)
 @Entity
 @NoArgsConstructor

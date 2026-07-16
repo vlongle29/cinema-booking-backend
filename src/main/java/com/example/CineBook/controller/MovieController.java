@@ -27,7 +27,7 @@ public class MovieController {
     private final MovieService movieService;
 
     @PostMapping(consumes = {"multipart/form-data"})
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Tạo phim mới")
     public ResponseEntity<ApiResponse<MovieResponse>> createMovie(
             @Valid @ModelAttribute CreateMovieRequest request) {
@@ -36,18 +36,20 @@ public class MovieController {
 
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm phim")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> searchMovies(@ModelAttribute MovieSearchDTO searchDTO) {
         return ResponseEntity.ok(ApiResponse.success(movieService.searchMovies(searchDTO)));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Xem chi tiết phim")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<MovieResponse>> getMovieById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(movieService.getMovieById(id)));
     }
 
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Cập nhật phim")
     public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(
             @PathVariable UUID id,
@@ -56,7 +58,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/{id}")
-//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     @Operation(summary = "Xóa phim")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID id) {
         movieService.deleteMovie(id);

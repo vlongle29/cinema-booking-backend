@@ -37,7 +37,7 @@ public class SysRoleController {
 
     @Operation(summary = "Cập nhật một vai trò đã có")
     @PutMapping
-//    @PreAuthorize("hasAuthority('role:update')")
+    @PreAuthorize("hasAuthority('role:update')")
     public ResponseEntity<ApiResponse<SysRoleResponse>> updateRole(@Valid @RequestBody SysRoleRequest request) {
         SysRoleResponse updatedRole = sysRoleService.update(request);
         return ResponseEntity.ok(ApiResponse.success("Vai trò đã được cập nhật thành công.", updatedRole));
@@ -59,16 +59,16 @@ public class SysRoleController {
     }
 
     @Operation(summary = "Tìm kiếm và phân trang các vai trò")
-    @PostMapping("/search")
-//    @PreAuthorize("hasAuthority('role:view')")
-    public ResponseEntity<ApiResponse<PageResponse<SysRoleResponse>>> searchRoles(@RequestBody SysRoleSearchDTO searchDTO) {
+    @GetMapping("/search")
+    @PreAuthorize("hasAuthority('role:view')")
+    public ResponseEntity<ApiResponse<PageResponse<SysRoleResponse>>> searchRoles(@ModelAttribute SysRoleSearchDTO searchDTO) {
         PageResponse<SysRoleResponse> results = sysRoleService.search(searchDTO);
         return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     @Operation(summary = "Lấy thông tin chi tiết của một vai trò")
     @GetMapping("/{id}")
-//    @PreAuthorize("hasAuthority('role:view')")
+    @PreAuthorize("hasAuthority('role:view')")
     public ResponseEntity<ApiResponse<SysRoleResponse>> getRoleById(@PathVariable UUID id) {
         SysRoleResponse role = sysRoleService.findById(id);
         return ResponseEntity.ok(ApiResponse.success(role));
@@ -76,7 +76,7 @@ public class SysRoleController {
 
     @Operation(summary = "Lấy danh sách tất cả các vai trò")
     @GetMapping
-//    @PreAuthorize("hasAuthority('role:view')")
+    @PreAuthorize("hasAuthority('role:view')")
     public ResponseEntity<ApiResponse<List<SysRoleResponse>>> getAllRoles() {
         List<SysRoleResponse> roles = sysRoleService.findAll();
         return ResponseEntity.ok(ApiResponse.success(roles));
@@ -84,7 +84,7 @@ public class SysRoleController {
 
     @Operation(summary = "Gán quyền cho một vai trò")
     @PostMapping("/assign-permissions")
-//    @PreAuthorize("hasAuthority('role:manage')")
+    @PreAuthorize("hasAuthority('role:manage')")
     public ResponseEntity<ApiResponse<Void>> assignPermissionsToRole(@Valid @RequestBody AssignPermissionsRequest request) {
         sysRoleService.assignPermissionsToRole(request);
         return ResponseEntity.ok(ApiResponse.success(null));
@@ -92,7 +92,7 @@ public class SysRoleController {
 
     @Operation(summary = "Lấy danh sách các quyền của một vai trò")
     @GetMapping("/{roleId}/permissions")
-//    @PreAuthorize("hasAuthority('role:view')")
+    @PreAuthorize("hasAuthority('role:view')")
     public ResponseEntity<ApiResponse<List<SysPermissionResponse>>> getPermissionsForRole(@PathVariable UUID roleId) {
         List<SysPermissionResponse> permissions = sysRoleService.getPermissionsByRoleId(roleId);
         return ResponseEntity.ok(ApiResponse.success(permissions));

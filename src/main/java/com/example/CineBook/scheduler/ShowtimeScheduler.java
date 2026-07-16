@@ -1,4 +1,4 @@
-package com.example.CineBook.schedule;
+package com.example.CineBook.scheduler;
 
 import com.example.CineBook.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;

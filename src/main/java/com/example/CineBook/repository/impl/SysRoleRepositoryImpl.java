@@ -157,22 +157,17 @@ public class SysRoleRepositoryImpl extends BaseRepositoryImpl<SysRole, SysRoleSe
         Root<SysPermission> permissionRoot = cq.from(SysPermission.class);
         Root<SysRolePermission> rolePermissionRoot = cq.from(SysRolePermission.class);
 
-        // Sử dụng cb.construct để ánh xạ trực tiếp kết quả truy vấn vào DTO
-        // Giả định PermissionResponse có constructor nhận (id, code, name)
         cq.select(cb.construct(
                 SysPermissionResponse.class,
-                permissionRoot.get(SysPermission_.id),
-                permissionRoot.get(SysPermission_.permission),
-                permissionRoot.get(SysPermission_.description)
+                permissionRoot.get("id"),
+                permissionRoot.get("permission"),
+                permissionRoot.get("description")
         )).distinct(true);
 
         cq.where(cb.and(
-                // Lọc theo roleId từ bảng trung gian SysRolePermission
-                cb.equal(rolePermissionRoot.get(SysRolePermission_.roleId), roleId),
-                // Join bảng SysRolePermission với SysPermission
-                cb.equal(rolePermissionRoot.get(SysRolePermission_.permissionId), permissionRoot.get(SysPermission_.id)),
-                // Chỉ lấy các permission chưa bị xóa mềm (good practice)
-                cb.equal(permissionRoot.get(SysPermission_.isDelete), false)
+                cb.equal(rolePermissionRoot.get("roleId"), roleId),
+                cb.equal(rolePermissionRoot.get("permissionId"), permissionRoot.get("id")),
+                cb.equal(permissionRoot.get("isDelete"), false)
         ));
 
         return entityManager.createQuery(cq).getResultList();

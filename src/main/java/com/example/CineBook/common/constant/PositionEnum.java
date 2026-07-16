@@ -8,7 +8,7 @@ import lombok.Getter;
  */
 @Getter
 public enum PositionEnum {
-    MANAGER("MANAGER", "Quản lý chi nhánh"),
+    BRANCH_MANAGER("BRANCH_MANAGER", "Quản lý chi nhánh"),
     CASHIER("CASHIER", "Thu ngân"),
     TECHNICIAN("TECHNICIAN", "Kỹ thuật viên"),
     CLEANER("CLEANER", "Nhân viên vệ sinh"),

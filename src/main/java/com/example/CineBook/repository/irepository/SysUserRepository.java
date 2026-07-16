@@ -25,18 +25,17 @@ public interface SysUserRepository extends BaseRepositoryCustom<SysUser, SysUser
 
     @Query("SELECT u.username FROM SysUser u WHERE u.id = :id")
     Optional<String> findUsernameById(@Param("id") UUID id);
-//    // Câu lệnh SQL tối ưu lấy tất cả trong 1 lần
-//    @Query(value = """
-//        SELECT
-//            r.code as roleCode,
-//            p.code as permissionCode
-//        FROM sys_role r
-//        INNER JOIN users_roles ur ON r.id = ur.role_id
-//        LEFT JOIN roles_permissions rp ON r.id = rp.role_id
-//        LEFT JOIN sys_permission p ON rp.permission_id = p.id
-//        WHERE ur.user_id = :userId
-//    """, nativeQuery = true)
-//    List<AuthorityProjection> findAllAuthoritiesByUserId(@Param("userId") UUID userId);
+    @Query(value = """
+        SELECT
+            r.code as roleCode,
+            p.code as permissionCode
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        LEFT JOIN sys_role_permission rp ON r.id = rp.role_id
+        LEFT JOIN sys_permission p ON rp.permission_id = p.id
+        WHERE ur.user_id = :userId
+    """, nativeQuery = true)
+    List<AuthorityProjection> findAllAuthoritiesByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT u.id as id, u.username as username FROM SysUser u WHERE u.id IN :ids")
     List<UserUsernameProjection> findUsernamesByIds(@Param("ids") Set<UUID> ids);

@@ -58,7 +58,7 @@ public class BranchServiceImpl implements BranchService {
         }
 
         if (user.getTypeAccount().equals(RoleEnum.STAFF.getValue())) {
-            user.setTypeAccount(PositionEnum.MANAGER.getValue());
+            user.setTypeAccount(RoleEnum.MANAGER.getValue());
             sysUserRepository.save(user);
 
             SysRole role = sysRoleRepository.findByCode(RoleEnum.MANAGER.getValue())

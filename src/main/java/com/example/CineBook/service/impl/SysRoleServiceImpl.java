@@ -170,17 +170,17 @@ public class SysRoleServiceImpl implements SysRoleService {
         // 1. Kiểm tra sự tồn tại và cờ hệ thống của vai trò
         SysRole role = sysRoleRepository.findById(roleId).orElseThrow(() -> new BusinessException(MessageCode.SYS_ROLE_NOT_FOUND));
 
-        if (SystemFlag.SYSTEM.equals(role.getSystemFlag())) {
+        if (SystemFlag.SYSTEM.getValue().equals(role.getSystemFlag())) {
             throw new BusinessException(MessageCode.SYS_ROLE_CANNOT_MODIFY_SYSTEM_ROLE_PERMISSIONS);
         }
 
         // 2. Xóa tất cả các quyền hiện tại của vai trò này để đảm bảo tính nhất quán
         rolePermissionRepository.deleteByRoleId(roleId);
+        rolePermissionRepository.flush();
 
-        // 3. Gán các quyền mới (nếu có)
+        // 3. Gán các quyền mới (nếu có) — Set loại bỏ trùng lặp từ request (cũ + mới)
         if (request.getPermissionIds() != null && !request.getPermissionIds().isEmpty()) {
-            // Sử dụng Set để loại bỏ các permissionId trùng lặp từ request
-            List<SysRolePermission> newPermissions = new HashSet<>(request.getPermissionIds()).stream().map(permissionId -> new SysRolePermission(null, roleId, permissionId)).collect(java.util.stream.Collectors.toList());
+            List<SysRolePermission> newPermissions = new HashSet<>(request.getPermissionIds()).stream().map(permissionId -> new SysRolePermission(null, roleId, permissionId)).collect(Collectors.toList());
             rolePermissionRepository.saveAll(newPermissions);
         }
         // Xóa cache cho các user bị ảnh hưởng

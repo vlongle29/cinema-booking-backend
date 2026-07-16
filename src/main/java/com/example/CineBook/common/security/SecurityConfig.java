@@ -23,6 +23,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+/**
+ * @EnableMethodSecurity(prePostEnabled = true) là annotation của Spring Security dùng để bật tính
+ * năng phân quyền ở cấp độ method (phương thức).
+ *
+ * Nó cho phép sử dụng các annotation như:
+ * @PreAuthorize
+ * @PostAuthorize
+ * @PreFilter
+ * @PostFilter
+ */
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -44,8 +54,7 @@ public class SecurityConfig {
             "/api/showtimes/available-cities",
             "/api/showtimes/available-formats",
             "/api/showtimes/grouped-by-branch",
-            "/api/movies/search",
-            "/api/movies/{id}",
+//            "/api/movies/{id}",
 //            "/api/movies/**",
             "/api/payments/vn-pay-callback",
             "/api/rooms/search",

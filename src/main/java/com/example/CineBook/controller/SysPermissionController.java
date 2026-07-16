@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,7 +33,7 @@ public class SysPermissionController {
 
     @Operation(summary = "Tạo một quyền mới")
     @PostMapping
-//    @PreAuthorize("hasAuthority('permission:create')")
+    @PreAuthorize("hasAuthority('permission:create') or hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<SysPermissionResponse>> createPermission(@Valid @RequestBody SysPermissionRequest request) {
         SysPermissionResponse newPermission = sysPermissionService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -41,7 +42,7 @@ public class SysPermissionController {
 
     @Operation(summary = "Cập nhật một quyền đã có")
     @PutMapping
-//    @PreAuthorize("hasAuthority('permission:update')")
+    @PreAuthorize("hasAuthority('permission:update') or hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<SysPermissionResponse>> updatePermission(@Valid @RequestBody SysPermissionRequest request) {
         SysPermissionResponse updatedPermission = sysPermissionService.update(request);
         return ResponseEntity.ok(ApiResponse.success( updatedPermission));
@@ -49,7 +50,7 @@ public class SysPermissionController {
 
     @Operation(summary = "Xóa một quyền")
     @DeleteMapping("/{id}")
-//    @PreAuthorize("hasAuthority('permission:delete')")
+    @PreAuthorize("hasAuthority('permission:delete') or hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deletePermission(@PathVariable UUID id) {
         sysPermissionService.delete(id);
         return ResponseEntity.ok(ApiResponse.success());
@@ -57,23 +58,23 @@ public class SysPermissionController {
 
     @Operation(summary = "Xóa nhiều quyền")
     @DeleteMapping("/batch")
-//    @PreAuthorize("hasAuthority('permission:delete')")
+    @PreAuthorize("hasAuthority('permission:delete') or hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deletePermissionsBatch(@RequestBody List<UUID> ids) {
         sysPermissionService.deleteBatch(ids);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @Operation(summary = "Tìm kiếm và phân trang các quyền")
-    @PostMapping("/search")
-//    @PreAuthorize("hasAuthority('permission:view')")
-    public ResponseEntity<ApiResponse<PageResponse<SysPermissionResponse>>> searchPermissions(@RequestBody SysPermissionSearchDTO searchDTO) {
+    @GetMapping("/search")
+    @PreAuthorize("hasAuthority('permission:view') or hasAnyRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<SysPermissionResponse>>> searchPermissions(@ModelAttribute SysPermissionSearchDTO searchDTO) {
         PageResponse<SysPermissionResponse> results = sysPermissionService.search(searchDTO);
         return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     @Operation(summary = "Lấy thông tin chi tiết của một quyền")
     @GetMapping("/{id}")
-//    @PreAuthorize("hasAuthority('permission:view')")
+    @PreAuthorize("hasAuthority('permission:view') or hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<SysPermissionResponse>> getPermissionById(@PathVariable UUID id) {
         SysPermissionResponse permission = sysPermissionService.findById(id)
                 .orElseThrow(() -> new BusinessException(MessageCode.SYS_PERMISSION_NOT_FOUND));

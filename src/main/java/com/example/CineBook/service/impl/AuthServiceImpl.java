@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
         
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getId().toString(), null, 
-                roles.stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList());
+                roles.stream().map(SimpleGrantedAuthority::new).toList());
         String accessToken = jwtTokenProvider.generateToken(authentication, sessionId, user.getUsername());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId().toString(), sessionId);
 
