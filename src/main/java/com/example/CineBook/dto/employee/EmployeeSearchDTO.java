@@ -12,5 +12,6 @@ public class EmployeeSearchDTO extends SearchBaseDto {
     private String name;
     private String employeeCode;
     private UUID branchId;
-    private String role;
+    private String roleId;
+    private UUID manageId;
 }

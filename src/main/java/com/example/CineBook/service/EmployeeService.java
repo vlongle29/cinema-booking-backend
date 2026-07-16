@@ -32,7 +32,6 @@ public interface EmployeeService {
      */
     PageResponse<EmployeeResponse> searchEmployees(EmployeeSearchDTO searchDTO);
 
-//    void deactivateEmployee(UUID employeeId);
-//    void activateEmployee(UUID employeeId);
+    void deactivateEmployee(UUID employeeId);
 
 }

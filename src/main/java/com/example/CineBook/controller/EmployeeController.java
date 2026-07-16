@@ -85,7 +85,7 @@ public class EmployeeController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     @Operation(summary = "Xóa mềm nhân viên", description = "Xóa mềm nhân viên khi xin nghỉ việc, thôi việc...")
     public ResponseEntity<ApiResponse<Void>> deactivateEmployee(@PathVariable UUID employeeId) {
-        // TODO: Implement soft delete logic
+        employeeService.deactivateEmployee(employeeId);
         return ResponseEntity.ok(ApiResponse.success());
     }
 
