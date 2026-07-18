@@ -28,9 +28,6 @@ public class EmployeeCreateRequest {
     @NotNull(message = "EMPLOYEE_BRANCH_REQUIRED")
     private UUID branchId;
 
-    @NotBlank(message = "{EMPLOYEE_CODE_REQUIRED}")
-    private String employeeCode;
-
     @NotNull(message = "{EMPLOYEE_POSITION_REQUIRED}")
     private UUID positionId;
 

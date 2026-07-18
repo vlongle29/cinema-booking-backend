@@ -63,10 +63,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeResponse createEmployee(EmployeeCreateRequest request) {
-        // Validate employee code uniqueness
-        if (request.getEmployeeCode() != null && employeeRepository.existsByEmployeeCode(request.getEmployeeCode())) {
-            throw new BusinessException(MessageCode.EMPLOYEE_CODE_ALREADY_EXISTS);
-        }
+        // Auto-generate a unique employee code: NV001, NV002, ...
+        String generatedCode = generateUniqueEmployeeCode();
 
         // Validate position exists
         if (request.getPositionId() != null) {
@@ -108,12 +106,29 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Create user (this method will also insert user_role)
         UserInfoResponse createdUser = sysUserService.createUser(userReq);
 
-        // Create employee profile
+        // Create employee profile with auto-generated code
         Employee employee = employeeMapper.toEntity(request, createdUser.getId());
+        employee.setEmployeeCode(generatedCode);
         Employee saved = employeeRepository.save(employee);
 
         return enrichEmployeeResponse(saved);
     }
+
+    /**
+     * Generates a unique employee code in the format NVxxx (e.g. NV001, NV042).
+     * Keeps incrementing the suffix until a free slot is found.
+     */
+    private String generateUniqueEmployeeCode() {
+        long count = employeeRepository.count();
+        int seq = (int) (count + 1);
+        String code;
+        do {
+            code = String.format("NV%03d", seq);
+            seq++;
+        } while (employeeRepository.existsByEmployeeCode(code));
+        return code;
+    }
+
 
     @Override
     public PageResponse<EmployeeResponse> getEmployeesByBranch(UUID branchId, int page, int size) {
