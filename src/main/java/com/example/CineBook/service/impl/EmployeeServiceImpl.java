@@ -249,13 +249,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     @Transactional
-    public void deactivateEmployee(UUID employeeId) {
-        Employee employee = employeeRepository.findById(employeeId)
+    public void deactivateEmployee(UUID userId) {
+        Employee employee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.EMPLOYEE_NOT_FOUND));
 
-        employeeRepository.softDeleteById(employeeId);
+        employeeRepository.softDeleteById(employee.getId());
 
-        SysUser user = sysUserRepository.findById(employee.getUserId())
+        SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(MessageCode.USER_NOT_FOUND));
         user.setIsDelete(true);
         sysUserRepository.save(user);
